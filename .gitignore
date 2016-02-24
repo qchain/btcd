@@ -14,6 +14,9 @@ btcd.db
 *.a
 *.so
 
+# Compiled Programs
+btcd
+
 # Folders
 _obj
 _test
