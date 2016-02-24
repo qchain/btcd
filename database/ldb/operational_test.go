@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2014 The btcsuite developers
+// Copyright (c) 2013-2014 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -14,12 +14,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/database"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/golangcrypto/ripemd160"
+	"github.com/qchain/btcd/chaincfg"
+	"github.com/qchain/btcd/database"
+	"github.com/qchain/btcd/txscript"
+	"github.com/qchain/btcd/wire"
+	"github.com/qchain/btcutil"
+	"github.com/qchain/golangcrypto/ripemd160"
 )
 
 var network = wire.MainNet

@@ -1,8 +1,8 @@
 database
 ========
 
-[![Build Status](https://travis-ci.org/btcsuite/btcd.png?branch=master)]
-(https://travis-ci.org/btcsuite/btcd)
+[![Build Status](https://travis-ci.org/qchain/btcd.png?branch=master)]
+(https://travis-ci.org/qchain/btcd)
 
 Package database provides a block and metadata storage database.
 
@@ -12,9 +12,9 @@ one entity can have the database open at a time (for most database backends),
 and that entity will be btcd.
 
 When a client wants programmatic access to the data provided by btcd, they'll
-likely want to use the [btcrpcclient](https://github.com/btcsuite/btcrpcclient)
+likely want to use the [btcrpcclient](https://github.com/qchain/btcrpcclient)
 package which makes use of the [JSON-RPC API]
-(https://github.com/btcsuite/btcd/tree/master/docs/json_rpc_api.md).
+(https://github.com/qchain/btcd/tree/master/docs/json_rpc_api.md).
 
 However, this package could be extremely useful for any applications requiring
 Bitcoin block storage capabilities.
@@ -41,32 +41,32 @@ storage, and strict checksums in key areas to ensure data integrity.
 
 ## Documentation
 
-[![GoDoc](https://godoc.org/github.com/btcsuite/btcd/database?status.png)]
-(http://godoc.org/github.com/btcsuite/btcd/database)
+[![GoDoc](https://godoc.org/github.com/qchain/btcd/database?status.png)]
+(http://godoc.org/github.com/qchain/btcd/database)
 
 Full `go doc` style documentation for the project can be viewed online without
 installing this package by using the GoDoc site here:
-http://godoc.org/github.com/btcsuite/btcd/database
+http://godoc.org/github.com/qchain/btcd/database
 
 You can also view the documentation locally once the package is installed with
 the `godoc` tool by running `godoc -http=":6060"` and pointing your browser to
-http://localhost:6060/pkg/github.com/btcsuite/btcd/database
+http://localhost:6060/pkg/github.com/qchain/btcd/database
 
 ## Installation
 
 ```bash
-$ go get github.com/btcsuite/btcd/database
+$ go get github.com/qchain/btcd/database
 ```
 
 ## Examples
 
 * [Basic Usage Example]
-  (http://godoc.org/github.com/btcsuite/btcd/database#example-package--BasicUsage)  
+  (http://godoc.org/github.com/qchain/btcd/database#example-package--BasicUsage)  
   Demonstrates creating a new database and using a managed read-write
   transaction to store and retrieve metadata.
 
 * [Block Storage and Retrieval Example]
-  (http://godoc.org/github.com/btcsuite/btcd/database#example-package--BlockStorageAndRetrieval)  
+  (http://godoc.org/github.com/qchain/btcd/database#example-package--BlockStorageAndRetrieval)  
   Demonstrates creating a new database, using a managed read-write transaction
   to store a block, and then using a managed read-only transaction to fetch the
   block.

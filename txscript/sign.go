@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2015 The btcsuite developers
+// Copyright (c) 2013-2015 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/qchain/btcd/btcec"
+	"github.com/qchain/btcd/chaincfg"
+	"github.com/qchain/btcd/wire"
+	"github.com/qchain/btcutil"
 )
 
 // RawTxInSignature returns the serialized ECDSA signature for the input idx of

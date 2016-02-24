@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2015 The btcsuite developers
+// Copyright (c) 2013-2015 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,7 +11,7 @@ import (
 	"io"
 	"math"
 
-	"github.com/btcsuite/fastsha256"
+	"github.com/qchain/fastsha256"
 )
 
 // MaxVarIntPayload is the maximum payload size for a variable length integer.

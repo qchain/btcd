@@ -19,7 +19,7 @@
 5. [Developer Resources](#DeveloperResources)
     1. [Code Contribution Guidelines](#ContributionGuidelines)
     2. [JSON-RPC Reference](#JSONRPCReference)
-    3. [The btcsuite Bitcoin-related Go Packages](#GoPackages)
+    3. [The qchain Bitcoin-related Go Packages](#GoPackages)
 
 <a name="About" />
 ### 1. About
@@ -50,8 +50,8 @@ wallet functionality and this was a very intentional design decision. See the
 [blog entry](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon) for
 more details. This means you can't actually make or receive payments directly
 with btcd. That functionality is provided by the
-[btcwallet](https://github.com/btcsuite/btcwallet) and
-[btcgui](https://github.com/btcsuite/btcgui) projects which are both under
+[btcwallet](https://github.com/qchain/btcwallet) and
+[btcgui](https://github.com/qchain/btcgui) projects which are both under
 active development.
 
 <a name="GettingStarted" />
@@ -66,7 +66,7 @@ details on how to install on the supported operating systems.
 <a name="WindowsInstallation" />
 **2.1.1 Windows Installation**<br />
 
-* Install the MSI available at: https://github.com/btcsuite/btcd/releases
+* Install the MSI available at: https://github.com/qchain/btcd/releases
 * Launch btcd from the Start Menu
 
 <a name="PosixInstallation" />
@@ -74,8 +74,8 @@ details on how to install on the supported operating systems.
 
 * Install Go according to the installation instructions here: http://golang.org/doc/install
 * Run the following command to ensure your Go version is at least version 1.2: `$ go version`
-* Run the following command to obtain btcd, its dependencies, and install it: `$ go get github.com/btcsuite/btcd/...`<br />
-  * To upgrade, run the following command: `$ go get -u github.com/btcsuite/btcd/...`
+* Run the following command to obtain btcd, its dependencies, and install it: `$ go get github.com/qchain/btcd/...`<br />
+  * To upgrade, run the following command: `$ go get -u github.com/qchain/btcd/...`
 * Run btcd: `$ btcd`
 
 <a name="GentooInstallation" />
@@ -89,7 +89,7 @@ details on how to install on the supported operating systems.
 <a name="Configuration" />
 **2.2 Configuration**<br />
 
-btcd has a number of [configuration](http://godoc.org/github.com/btcsuite/btcd)
+btcd has a number of [configuration](http://godoc.org/github.com/qchain/btcd)
 options, which can be viewed by running: `$ btcd --help`.
 
 <a name="BtcctlConfig" />
@@ -166,20 +166,20 @@ configuration necessary, however, there is an optional method to use a
 
 <a name="BootstrapDat" />
 **3.1.1 bootstrap.dat**<br />
-* [Using bootstrap.dat](https://github.com/btcsuite/btcd/tree/master/docs/using_bootstrap_dat.md)
+* [Using bootstrap.dat](https://github.com/qchain/btcd/tree/master/docs/using_bootstrap_dat.md)
 
 <a name="NetworkConfig" />
 **3.1.2 Network Configuration**<br />
-* [What Ports Are Used by Default?](https://github.com/btcsuite/btcd/tree/master/docs/default_ports.md)
-* [How To Listen on Specific Interfaces](https://github.com/btcsuite/btcd/tree/master/docs/configure_peer_server_listen_interfaces.md)
-* [How To Configure RPC Server to Listen on Specific Interfaces](https://github.com/btcsuite/btcd/tree/master/docs/configure_rpc_server_listen_interfaces.md)
-* [Configuring btcd with Tor](https://github.com/btcsuite/btcd/tree/master/docs/configuring_tor.md)
+* [What Ports Are Used by Default?](https://github.com/qchain/btcd/tree/master/docs/default_ports.md)
+* [How To Listen on Specific Interfaces](https://github.com/qchain/btcd/tree/master/docs/configure_peer_server_listen_interfaces.md)
+* [How To Configure RPC Server to Listen on Specific Interfaces](https://github.com/qchain/btcd/tree/master/docs/configure_rpc_server_listen_interfaces.md)
+* [Configuring btcd with Tor](https://github.com/qchain/btcd/tree/master/docs/configuring_tor.md)
 
 <a name="Wallet" />
 **3.1 Wallet**<br />
 
 btcd was intentionally developed without an integrated wallet for security
-reasons.  Please see [btcwallet](https://github.com/btcsuite/btcwallet) for more
+reasons.  Please see [btcwallet](https://github.com/qchain/btcwallet) for more
 information.
 
 <a name="Contact" />
@@ -200,28 +200,28 @@ information.
 ### 5. Developer Resources
 
 <a name="ContributionGuidelines" />
-* [Code Contribution Guidelines](https://github.com/btcsuite/btcd/tree/master/docs/code_contribution_guidelines.md)
+* [Code Contribution Guidelines](https://github.com/qchain/btcd/tree/master/docs/code_contribution_guidelines.md)
 <a name="JSONRPCReference" />
-* [JSON-RPC Reference](https://github.com/btcsuite/btcd/tree/master/docs/json_rpc_api.md)
-    * [RPC Examples](https://github.com/btcsuite/btcd/tree/master/docs/json_rpc_api.md#ExampleCode)
+* [JSON-RPC Reference](https://github.com/qchain/btcd/tree/master/docs/json_rpc_api.md)
+    * [RPC Examples](https://github.com/qchain/btcd/tree/master/docs/json_rpc_api.md#ExampleCode)
 <a name="GoPackages" />
-* The btcsuite Bitcoin-related Go Packages:
-    * [btcrpcclient](https://github.com/btcsuite/btcrpcclient) - Implements a
+* The qchain Bitcoin-related Go Packages:
+    * [btcrpcclient](https://github.com/qchain/btcrpcclient) - Implements a
 	  robust and easy to use Websocket-enabled Bitcoin JSON-RPC client
-    * [btcjson](https://github.com/btcsuite/btcjson) - Provides an extensive API
+    * [btcjson](https://github.com/qchain/btcjson) - Provides an extensive API
 	  for the underlying JSON-RPC command and return values
-    * [wire](https://github.com/btcsuite/btcd/tree/master/wire) - Implements the
+    * [wire](https://github.com/qchain/btcd/tree/master/wire) - Implements the
 	  Bitcoin wire protocol
-    * [peer](https://github.com/btcsuite/btcd/tree/master/peer) -
+    * [peer](https://github.com/qchain/btcd/tree/master/peer) -
 	  Provides a common base for creating and managing Bitcoin network peers.
-    * [blockchain](https://github.com/btcsuite/btcd/tree/master/blockchain) -
+    * [blockchain](https://github.com/qchain/btcd/tree/master/blockchain) -
 	  Implements Bitcoin block handling and chain selection rules
-    * [txscript](https://github.com/btcsuite/btcd/tree/master/txscript) -
+    * [txscript](https://github.com/qchain/btcd/tree/master/txscript) -
 	  Implements the Bitcoin transaction scripting language
-    * [btcec](https://github.com/btcsuite/btcd/tree/master/btcec) - Implements
+    * [btcec](https://github.com/qchain/btcd/tree/master/btcec) - Implements
 	  support for the elliptic curve cryptographic functions needed for the
 	  Bitcoin scripts
-    * [database](https://github.com/btcsuite/btcd/tree/master/database) -
+    * [database](https://github.com/qchain/btcd/tree/master/database) -
 	  Provides a database interface for the Bitcoin block chain
-    * [btcutil](https://github.com/btcsuite/btcutil) - Provides Bitcoin-specific
+    * [btcutil](https://github.com/qchain/btcutil) - Provides Bitcoin-specific
 	  convenience functions and types

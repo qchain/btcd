@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The btcsuite developers
+// Copyright (c) 2014 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,7 +8,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/qchain/btcd/wire"
 )
 
 // These variables are the chain proof-of-work limit parameters for each default

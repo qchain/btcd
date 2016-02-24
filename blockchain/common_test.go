@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2014 The btcsuite developers
+// Copyright (c) 2013-2014 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -13,13 +13,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/btcsuite/btcd/blockchain"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/database"
-	_ "github.com/btcsuite/btcd/database/ldb"
-	_ "github.com/btcsuite/btcd/database/memdb"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/qchain/btcd/blockchain"
+	"github.com/qchain/btcd/chaincfg"
+	"github.com/qchain/btcd/database"
+	_ "github.com/qchain/btcd/database/ldb"
+	_ "github.com/qchain/btcd/database/memdb"
+	"github.com/qchain/btcd/wire"
+	"github.com/qchain/btcutil"
 )
 
 // testDbType is the database backend type to use for the tests.

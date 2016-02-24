@@ -1,11 +1,11 @@
 database
 ========
 
-[![Build Status](http://img.shields.io/travis/btcsuite/btcd.svg)]
-(https://travis-ci.org/btcsuite/btcd)  [![ISC License]
+[![Build Status](http://img.shields.io/travis/qchain/btcd.svg)]
+(https://travis-ci.org/qchain/btcd)  [![ISC License]
 (http://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)]
-(http://godoc.org/github.com/btcsuite/btcd/database)
+(http://godoc.org/github.com/qchain/btcd/database)
 
 Package database provides a database interface for the bitcoin block chain and
 transactions.
@@ -16,24 +16,24 @@ one entity can have the database open at a time (for most database backends),
 and that entity will be btcd.
 
 When a client wants programmatic access to the data provided by btcd, they'll
-likely want to use the [btcrpcclient](https://github.com/btcsuite/btcrpcclient)
+likely want to use the [btcrpcclient](https://github.com/qchain/btcrpcclient)
 package which makes use of the [JSON-RPC API]
-(https://github.com/btcsuite/btcd/tree/master/docs/json_rpc_api.md).
+(https://github.com/qchain/btcd/tree/master/docs/json_rpc_api.md).
 
 ## Installation and Updating
 
 ```bash
-$ go get -u github.com/btcsuite/btcd/database
+$ go get -u github.com/qchain/btcd/database
 ```
 
 ## Examples
 
 * [CreateDB Example]
-  (http://godoc.org/github.com/btcsuite/btcd/database#example-CreateDB)  
+  (http://godoc.org/github.com/qchain/btcd/database#example-CreateDB)  
   Demonstrates creating a new database and inserting the genesis block into it.
 
 * [NewestSha Example]
-  (http://godoc.org/github.com/btcsuite/btcd/database#example-Db--NewestSha)  
+  (http://godoc.org/github.com/qchain/btcd/database#example-Db--NewestSha)  
   Demonstrates  querying the database for the most recent best block height and
   hash.
 
@@ -43,7 +43,7 @@ $ go get -u github.com/btcsuite/btcd/database
 ## GPG Verification Key
 
 All official release tags are signed by Conformal so users can ensure the code
-has not been tampered with and is coming from the btcsuite developers.  To
+has not been tampered with and is coming from the qchain developers.  To
 verify the signature perform the following:
 
 - Download the public key from the Conformal website at

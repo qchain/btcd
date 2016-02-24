@@ -1,8 +1,8 @@
 btcd
 ====
 
-[![Build Status](https://travis-ci.org/btcsuite/btcd.png?branch=master)]
-(https://travis-ci.org/btcsuite/btcd)
+[![Build Status](https://travis-ci.org/qchain/btcd.png?branch=master)]
+(https://travis-ci.org/qchain/btcd)
 
 btcd is an alternative full node bitcoin implementation written in Go (golang).
 
@@ -29,8 +29,8 @@ wallet functionality and this was a very intentional design decision.  See the
 blog entry [here](https://blog.conformal.com/btcd-not-your-moms-bitcoin-daemon)
 for more details.  This means you can't actually make or receive payments
 directly with btcd.  That functionality is provided by the
-[btcwallet](https://github.com/btcsuite/btcwallet) and
-[btcgui](https://github.com/btcsuite/btcgui) projects which are both under
+[btcwallet](https://github.com/qchain/btcwallet) and
+[btcgui](https://github.com/qchain/btcgui) projects which are both under
 active development.
 
 ## Requirements
@@ -41,7 +41,7 @@ active development.
 
 #### Windows - MSI Available
 
-https://github.com/btcsuite/btcd/releases
+https://github.com/qchain/btcd/releases
 
 #### Linux/BSD/MacOSX/POSIX - Build from Source
 
@@ -62,7 +62,7 @@ recommended that `GOPATH` is set to a directory in your home directory such as
 - Run the following command to obtain btcd, all dependencies, and install it:
 
 ```bash
-$ go get -u github.com/btcsuite/btcd/...
+$ go get -u github.com/qchain/btcd/...
 ```
 
 - btcd (and utilities) will now be installed in either ```$GOROOT/bin``` or
@@ -81,7 +81,7 @@ Install a newer MSI
 - Run the following command to update btcd, all dependencies, and install it:
 
 ```bash
-$ go get -u -v github.com/btcsuite/btcd/...
+$ go get -u -v github.com/qchain/btcd/...
 ```
 
 ## Getting Started
@@ -115,17 +115,17 @@ To subscribe to a given list, send email to list+subscribe@opensource.conformal.
 
 ## Issue Tracker
 
-The [integrated github issue tracker](https://github.com/btcsuite/btcd/issues)
+The [integrated github issue tracker](https://github.com/qchain/btcd/issues)
 is used for this project.
 
 ## Documentation
 
-The documentation is a work-in-progress.  It is located in the [docs](https://github.com/btcsuite/btcd/tree/master/docs) folder.
+The documentation is a work-in-progress.  It is located in the [docs](https://github.com/qchain/btcd/tree/master/docs) folder.
 
 ## GPG Verification Key
 
 All official release tags are signed by Conformal so users can ensure the code
-has not been tampered with and is coming from the btcsuite developers.  To
+has not been tampered with and is coming from the qchain developers.  To
 verify the signature perform the following:
 
 - Download the public key from the Conformal website at

@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The btcsuite developers
+// Copyright (c) 2013 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,13 +11,13 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/database"
-	_ "github.com/btcsuite/btcd/database/ldb"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btclog"
-	"github.com/btcsuite/btcutil"
-	flags "github.com/btcsuite/go-flags"
+	"github.com/qchain/btcd/chaincfg"
+	"github.com/qchain/btcd/database"
+	_ "github.com/qchain/btcd/database/ldb"
+	"github.com/qchain/btcd/wire"
+	"github.com/qchain/btclog"
+	"github.com/qchain/btcutil"
+	flags "github.com/qchain/go-flags"
 )
 
 type config struct {

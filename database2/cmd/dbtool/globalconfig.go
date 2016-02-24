@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2016 The btcsuite developers
+// Copyright (c) 2015-2016 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,11 +10,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btcsuite/btcd/chaincfg"
-	database "github.com/btcsuite/btcd/database2"
-	_ "github.com/btcsuite/btcd/database2/ffldb"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	"github.com/qchain/btcd/chaincfg"
+	database "github.com/qchain/btcd/database2"
+	_ "github.com/qchain/btcd/database2/ffldb"
+	"github.com/qchain/btcd/wire"
+	"github.com/qchain/btcutil"
 )
 
 var (

@@ -1,11 +1,11 @@
-// Copyright (c) 2013-2014 The btcsuite developers
+// Copyright (c) 2013-2014 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package blockchain
 
 import (
-	"github.com/btcsuite/btcd/wire"
+	"github.com/qchain/btcd/wire"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for

@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2014 The btcsuite developers
+// Copyright (c) 2013-2014 The qchain developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/addrmgr"
-	"github.com/btcsuite/btcd/blockchain"
-	database "github.com/btcsuite/btcd/database2"
-	"github.com/btcsuite/btcd/peer"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btclog"
-	"github.com/btcsuite/seelog"
+	"github.com/qchain/btcd/addrmgr"
+	"github.com/qchain/btcd/blockchain"
+	database "github.com/qchain/btcd/database2"
+	"github.com/qchain/btcd/peer"
+	"github.com/qchain/btcd/txscript"
+	"github.com/qchain/btcd/wire"
+	"github.com/qchain/btclog"
+	"github.com/qchain/seelog"
 )
 
 const (

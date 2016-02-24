@@ -1,4 +1,4 @@
-// Copyright (c) 2015 The btcsuite developers Use of this source code is
+// Copyright (c) 2015 The qchain developers Use of this source code is
 // governed by an ISC license that can be found in the LICENSE file.
 
 package peer_test
@@ -9,7 +9,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/btcsuite/btcd/peer"
+	"github.com/qchain/btcd/peer"
 )
 
 func TestSetLogWriter(t *testing.T) {
