@@ -39,7 +39,7 @@ func TestAddr(t *testing.T) {
 	}
 
 	// Ensure NetAddresses are added properly.
-	tcpAddr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 8333}
+	tcpAddr := &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 8444}
 	na, err := wire.NewNetAddress(tcpAddr, wire.SFNodeNetwork)
 	if err != nil {
 		t.Errorf("NewNetAddress: %v", err)
@@ -111,13 +111,13 @@ func TestAddrWire(t *testing.T) {
 		Timestamp: time.Unix(0x495fab29, 0), // 2009-01-03 12:15:05 -0600 CST
 		Services:  wire.SFNodeNetwork,
 		IP:        net.ParseIP("127.0.0.1"),
-		Port:      8333,
+		Port:      8444,
 	}
 	na2 := &wire.NetAddress{
 		Timestamp: time.Unix(0x495fab29, 0), // 2009-01-03 12:15:05 -0600 CST
 		Services:  wire.SFNodeNetwork,
 		IP:        net.ParseIP("192.168.0.1"),
-		Port:      8334,
+		Port:      8445,
 	}
 
 	// Empty address message.
@@ -135,12 +135,12 @@ func TestAddrWire(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // SFNodeNetwork
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01, // IP 127.0.0.1
-		0x20, 0x8d, // Port 8333 in big-endian
+		0x20, 0xfc, // Port 8444 in big-endian
 		0x29, 0xab, 0x5f, 0x49, // Timestamp
 		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // SFNodeNetwork
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0xff, 0xff, 0xc0, 0xa8, 0x00, 0x01, // IP 192.168.0.1
-		0x20, 0x8e, // Port 8334 in big-endian
+		0x20, 0xfd, // Port 8445 in big-endian
 
 	}
 
@@ -218,13 +218,13 @@ func TestAddrWireErrors(t *testing.T) {
 		Timestamp: time.Unix(0x495fab29, 0), // 2009-01-03 12:15:05 -0600 CST
 		Services:  wire.SFNodeNetwork,
 		IP:        net.ParseIP("127.0.0.1"),
-		Port:      8333,
+		Port:      8444,
 	}
 	na2 := &wire.NetAddress{
 		Timestamp: time.Unix(0x495fab29, 0), // 2009-01-03 12:15:05 -0600 CST
 		Services:  wire.SFNodeNetwork,
 		IP:        net.ParseIP("192.168.0.1"),
-		Port:      8334,
+		Port:      8445,
 	}
 
 	// Address message with multiple addresses.
@@ -236,12 +236,12 @@ func TestAddrWireErrors(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // SFNodeNetwork
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01, // IP 127.0.0.1
-		0x20, 0x8d, // Port 8333 in big-endian
+		0x20, 0xfc, // Port 8444 in big-endian
 		0x29, 0xab, 0x5f, 0x49, // Timestamp
 		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // SFNodeNetwork
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0xff, 0xff, 0xc0, 0xa8, 0x00, 0x01, // IP 192.168.0.1
-		0x20, 0x8e, // Port 8334 in big-endian
+		0x20, 0xfd, // Port 8445 in big-endian
 
 	}
 
