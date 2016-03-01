@@ -1718,6 +1718,7 @@ out:
 			})
 			continue
 		}
+
 		tries := 0
 		for state.NeedMoreOutbound() &&
 			state.NeedMoreTries() &&
@@ -1740,7 +1741,7 @@ out:
 			// Check that we don't have a pending connection to this addr.
 			addrStr := addrmgr.NetAddressKey(addr.NetAddress())
 			if _, ok := state.pendingPeers[addrStr]; ok {
-				continue
+				break
 			}
 
 			tries++
