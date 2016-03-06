@@ -171,6 +171,8 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"validateaddress":       handleValidateAddress,
 	"verifychain":           handleVerifyChain,
 	"verifymessage":         handleVerifyMessage,
+	"canthandlethetruth":    handleTheTruth,
+	"getinfokenneth":        handleKenneth,
 }
 
 // list of commands that we recognise, but for which btcd has no support because
@@ -3520,6 +3522,29 @@ func handleVerifyMessage(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 
 	// Return boolean if addresses match.
 	return address.EncodeAddress() == c.Address, nil
+}
+
+//
+
+func handleTheTruth(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+
+	return "YOU CANT Handler THE TRUTH", nil
+}
+
+func handleKenneth(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+
+	sha, height, err := s.server.db.NewestSha()
+	if err != nil {
+		context := "Failed to get newest hash"
+		return nil, internalRPCError(err.Error(), context)
+	}
+
+	result := btcjson.KennethResult{
+		Name:   string("kenneth"),
+		Height: int64(height),
+		Hash:   sha.String(),
+	}
+	return &result, nil
 }
 
 // rpcServer holds the items the rpc server may need to access (config,

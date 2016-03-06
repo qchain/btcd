@@ -110,6 +110,7 @@ func populateDefaults(numParams int, info *methodInfo, rv reflect.Value) {
 func UnmarshalCmd(r *Request) (interface{}, error) {
 	registerLock.RLock()
 	rtp, ok := methodToConcreteType[r.Method]
+	fmt.Printf("rtp=%v, ok=%v\n", rtp, ok)
 	info := methodToInfo[r.Method]
 	registerLock.RUnlock()
 	if !ok {

@@ -427,3 +427,9 @@ type ValidateAddressChainResult struct {
 	IsValid bool   `json:"isvalid"`
 	Address string `json:"address,omitempty"`
 }
+
+type KennethResult struct {
+	Name   string `json:"name"`
+	Height int64  `json:"height"`
+	Hash   string `json:"hash"`
+}

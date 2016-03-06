@@ -53,7 +53,7 @@ func main() {
 	}
 	if len(args) < 1 {
 		usage("No command specified")
-		os.Exit(1)
+	os.Exit(1)
 	}
 
 	// Ensure the specified method identifies a valid registered command and
