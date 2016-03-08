@@ -343,7 +343,6 @@ func NewBlockTemplate(policy *mining.Policy, server *server, payToAddress btcuti
 	minrLog.Debugf("Considering %d transactions for inclusion to new block",
 		len(sourceTxns))
 
-mempoolLoop:
 	for _, txDesc := range sourceTxns {
 		// A block can't have more than one coinbase or contain
 		// non-finalized transactions.

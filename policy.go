@@ -5,8 +5,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/qchain/btcd/blockchain"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
@@ -100,10 +98,6 @@ func calcPriority(tx *wire.MsgTx, txStore blockchain.TxStore, nextBlockHeight in
 	//
 	// Thus 1 + 73 + 1 + 1 + 33 + 1 = 110
 	overhead := 0
-	for _, txIn := range tx.TxIn {
-		// Max inputs + size can't possibly overflow here.
-		overhead += 41 + minInt(110, len(txIn.SignatureScript))
-	}
 
 	serializedTxSize := tx.SerializeSize()
 	if overhead >= serializedTxSize {
@@ -121,84 +115,9 @@ func calcPriority(tx *wire.MsgTx, txStore blockchain.TxStore, nextBlockHeight in
 // which are currently in the mempool and hence not mined into a block yet,
 // contribute no additional input age to the transaction.
 func calcInputValueAge(tx *wire.MsgTx, txStore blockchain.TxStore, nextBlockHeight int32) float64 {
-	var totalInputAge float64
-	for _, txIn := range tx.TxIn {
-		originHash := &txIn.PreviousOutPoint.Hash
-		originIndex := txIn.PreviousOutPoint.Index
+	// TODO: Implement
 
-		// Don't attempt to accumulate the total input age if the txIn
-		// in question doesn't exist.
-		if txData, exists := txStore[*originHash]; exists && txData.Tx != nil {
-			// Inputs with dependencies currently in the mempool
-			// have their block height set to a special constant.
-			// Their input age should computed as zero since their
-			// parent hasn't made it into a block yet.
-			var inputAge int32
-			if txData.BlockHeight == mempoolHeight {
-				inputAge = 0
-			} else {
-				inputAge = nextBlockHeight - txData.BlockHeight
-			}
-
-			// Sum the input value times age.
-			originTxOut := txData.Tx.MsgTx().TxOut[originIndex]
-			inputValue := originTxOut.Value
-			totalInputAge += float64(inputValue * int64(inputAge))
-		}
-	}
-
-	return totalInputAge
-}
-
-// checkInputsStandard performs a series of checks on a transaction's inputs
-// to ensure they are "standard".  A standard transaction input is one that
-// that consumes the expected number of elements from the stack and that number
-// is the same as the output script pushes.  This help prevent resource
-// exhaustion attacks by "creative" use of scripts that are super expensive to
-// process like OP_DUP OP_CHECKSIG OP_DROP repeated a large number of times
-// followed by a final OP_TRUE.
-func checkInputsStandard(tx *btcutil.Tx, txStore blockchain.TxStore) error {
-	// NOTE: The reference implementation also does a coinbase check here,
-	// but coinbases have already been rejected prior to calling this
-	// function so no need to recheck.
-
-	for i, txIn := range tx.MsgTx().TxIn {
-		// It is safe to elide existence and index checks here since
-		// they have already been checked prior to calling this
-		// function.
-		prevOut := txIn.PreviousOutPoint
-		originTx := txStore[prevOut.Hash].Tx.MsgTx()
-		originPkScript := originTx.TxOut[prevOut.Index].PkScript
-
-		// Calculate stats for the script pair.
-		scriptInfo, err := txscript.CalcScriptInfo(txIn.SignatureScript,
-			originPkScript, true)
-		if err != nil {
-			str := fmt.Sprintf("transaction input #%d script parse "+
-				"failure: %v", i, err)
-			return txRuleError(wire.RejectNonstandard, str)
-		}
-
-		// A negative value for expected inputs indicates the script is
-		// non-standard in some way.
-		if scriptInfo.ExpectedInputs < 0 {
-			str := fmt.Sprintf("transaction input #%d expects %d "+
-				"inputs", i, scriptInfo.ExpectedInputs)
-			return txRuleError(wire.RejectNonstandard, str)
-		}
-
-		// The script pair is non-standard if the number of available
-		// inputs does not match the number of expected inputs.
-		if scriptInfo.NumInputs != scriptInfo.ExpectedInputs {
-			str := fmt.Sprintf("transaction input #%d expects %d "+
-				"inputs, but referenced output script provides "+
-				"%d", i, scriptInfo.ExpectedInputs,
-				scriptInfo.NumInputs)
-			return txRuleError(wire.RejectNonstandard, str)
-		}
-	}
-
-	return nil
+	return float64(0.0)
 }
 
 // checkTransactionStandard performs a series of checks on a transaction to
@@ -209,55 +128,7 @@ func checkInputsStandard(tx *btcutil.Tx, txStore blockchain.TxStore) error {
 // of recognized forms, and not containing "dust" outputs (those that are
 // so small it costs more to process them than they are worth).
 func checkTransactionStandard(tx *btcutil.Tx, height int32, timeSource blockchain.MedianTimeSource, minRelayTxFee btcutil.Amount) error {
-	// The transaction must be a currently supported version.
-	msgTx := tx.MsgTx()
-	if msgTx.Version > wire.TxVersion || msgTx.Version < 1 {
-		str := fmt.Sprintf("transaction version %d is not in the "+
-			"valid range of %d-%d", msgTx.Version, 1,
-			wire.TxVersion)
-		return txRuleError(wire.RejectNonstandard, str)
-	}
-
-	// The transaction must be finalized to be standard and therefore
-	// considered for inclusion in a block.
-	adjustedTime := timeSource.AdjustedTime()
-	if !blockchain.IsFinalizedTransaction(tx, height, adjustedTime) {
-		return txRuleError(wire.RejectNonstandard,
-			"transaction is not finalized")
-	}
-
-	// Since extremely large transactions with a lot of inputs can cost
-	// almost as much to process as the sender fees, limit the maximum
-	// size of a transaction.  This also helps mitigate CPU exhaustion
-	// attacks.
-	serializedLen := msgTx.SerializeSize()
-	if serializedLen > maxStandardTxSize {
-		str := fmt.Sprintf("transaction size of %v is larger than max "+
-			"allowed size of %v", serializedLen, maxStandardTxSize)
-		return txRuleError(wire.RejectNonstandard, str)
-	}
-
-	for i, txIn := range msgTx.TxIn {
-		// Each transaction input signature script must not exceed the
-		// maximum size allowed for a standard transaction.  See
-		// the comment on maxStandardSigScriptSize for more details.
-		sigScriptLen := len(txIn.SignatureScript)
-		if sigScriptLen > maxStandardSigScriptSize {
-			str := fmt.Sprintf("transaction input %d: signature "+
-				"script size of %d bytes is large than max "+
-				"allowed size of %d bytes", i, sigScriptLen,
-				maxStandardSigScriptSize)
-			return txRuleError(wire.RejectNonstandard, str)
-		}
-
-		// Each transaction input signature script must only contain
-		// opcodes which push data onto the stack.
-		if !txscript.IsPushOnlyScript(txIn.SignatureScript) {
-			str := fmt.Sprintf("transaction input %d: signature "+
-				"script is not push only", i)
-			return txRuleError(wire.RejectNonstandard, str)
-		}
-	}
+	// TODO: Implement
 
 	return nil
 }

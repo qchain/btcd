@@ -113,10 +113,10 @@ var _ mining.TxSource = (*txMemPool)(nil)
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *txMemPool) removeOrphan(txHash *wire.ShaHash) {
 	// Nothing to do if passed tx is not an orphan.
-	tx, exists := mp.orphans[*txHash]
-	if !exists {
-		return
-	}
+	// tx, exists := mp.orphans[*txHash]
+	// if !exists {
+	// 	return
+	// }
 
 	// TODO: Implement
 
@@ -286,20 +286,20 @@ func (mp *txMemPool) HaveTransaction(hash *wire.ShaHash) bool {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *txMemPool) removeTransaction(tx *btcutil.Tx, removeRedeemers bool) {
-	txHash := tx.Sha()
+	//txHash := tx.Sha()
 	if removeRedeemers {
-		// TODO: Remove any transactions which rely on this one.
+		// TODO: Remove any transactions in the mempool which rely on this one.
 	}
 
-	// Remove the transaction and mark the referenced outpoints as unspent
-	// by the pool.
-	if txDesc, exists := mp.pool[*txHash]; exists {
-		if mp.cfg.EnableAddrIndex {
-			mp.removeTransactionFromAddrIndex(tx)
-		}
-		delete(mp.pool, *txHash)
-		atomic.StoreInt64(&mp.lastUpdated, time.Now().Unix())
-	}
+	// // Remove the transaction and mark the referenced outpoints as unspent
+	// // by the pool.
+	// if txDesc, exists := mp.pool[*txHash]; exists {
+	// 	if mp.cfg.EnableAddrIndex {
+	// 		mp.removeTransactionFromAddrIndex(tx)
+	// 	}
+	// 	delete(mp.pool, *txHash)
+	// 	atomic.StoreInt64(&mp.lastUpdated, time.Now().Unix())
+	// }
 
 }
 
@@ -564,24 +564,6 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 	}
 	if len(missingParents) > 0 {
 		return missingParents, nil
-	}
-
-	// Don't allow transactions with non-standard inputs if the network
-	// parameters forbid their relaying.
-	if !activeNetParams.RelayNonStdTxs {
-		err := checkInputsStandard(tx, txStore)
-		if err != nil {
-			// Attempt to extract a reject code from the error so
-			// it can be retained.  When not possible, fall back to
-			// a non standard error.
-			rejectCode, found := extractRejectCode(err)
-			if !found {
-				rejectCode = wire.RejectNonstandard
-			}
-			str := fmt.Sprintf("transaction %v has a non-standard "+
-				"input: %v", txHash, err)
-			return nil, txRuleError(rejectCode, str)
-		}
 	}
 
 	// NOTE: if you modify this code to accept non-standard transactions,

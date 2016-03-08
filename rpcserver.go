@@ -125,7 +125,6 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"createrawtransaction":  handleCreateRawTransaction,
 	"debuglevel":            handleDebugLevel,
 	"decoderawtransaction":  handleDecodeRawTransaction,
-	"decodescript":          handleDecodeScript,
 	"generate":              handleGenerate,
 	"getaddednodeinfo":      handleGetAddedNodeInfo,
 	"getbestblock":          handleGetBestBlock,
@@ -148,7 +147,6 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"getpeerinfo":           handleGetPeerInfo,
 	"getrawmempool":         handleGetRawMempool,
 	"getrawtransaction":     handleGetRawTransaction,
-	"gettxout":              handleGetTxOut,
 	"getwork":               handleGetWork,
 	"help":                  handleHelp,
 	"node":                  handleNode,
@@ -183,7 +181,6 @@ var rpcAskWallet = map[string]struct{}{
 	"getreceivedbyaccount":   struct{}{},
 	"getreceivedbyaddress":   struct{}{},
 	"gettransaction":         struct{}{},
-	"gettxoutsetinfo":        struct{}{},
 	"getunconfirmedbalance":  struct{}{},
 	"getwalletinfo":          struct{}{},
 	"importprivkey":          struct{}{},
@@ -249,7 +246,6 @@ var rpcLimited = map[string]struct{}{
 	"getnetworkhashps":      struct{}{},
 	"getrawmempool":         struct{}{},
 	"getrawtransaction":     struct{}{},
-	"gettxout":              struct{}{},
 	"searchrawtransactions": struct{}{},
 	"sendrawtransaction":    struct{}{},
 	"submitblock":           struct{}{},
@@ -488,107 +484,11 @@ func messageToHex(msg wire.Message) (string, error) {
 
 // handleCreateRawTransaction handles createrawtransaction commands.
 func handleCreateRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.CreateRawTransactionCmd)
+	//c := cmd.(*btcjson.CreateRawTransactionCmd)
 
-	// Validate the locktime, if given.
-	if c.LockTime != nil &&
-		(*c.LockTime < 0 || *c.LockTime > int64(wire.MaxTxInSequenceNum)) {
-		return nil, &btcjson.RPCError{
-			Code:    btcjson.ErrRPCInvalidParameter,
-			Message: "Locktime out of range",
-		}
-	}
+	// TODO: Implement this
 
-	// Add all transaction inputs to a new transaction after performing
-	// some validity checks.
-	mtx := wire.NewMsgTx()
-	for _, input := range c.Inputs {
-		txHash, err := wire.NewShaHashFromStr(input.Txid)
-		if err != nil {
-			return nil, rpcDecodeHexError(input.Txid)
-		}
-
-		prevOut := wire.NewOutPoint(txHash, uint32(input.Vout))
-		txIn := wire.NewTxIn(prevOut, []byte{})
-		if c.LockTime != nil && *c.LockTime != 0 {
-			txIn.Sequence = wire.MaxTxInSequenceNum - 1
-		}
-		mtx.AddTxIn(txIn)
-	}
-
-	// Add all transaction outputs to the transaction after performing
-	// some validity checks.
-	for encodedAddr, amount := range c.Amounts {
-		// Ensure amount is in the valid range for monetary amounts.
-		if amount <= 0 || amount > btcutil.MaxSatoshi {
-			return nil, &btcjson.RPCError{
-				Code:    btcjson.ErrRPCType,
-				Message: "Invalid amount",
-			}
-		}
-
-		// Decode the provided address.
-		addr, err := btcutil.DecodeAddress(encodedAddr,
-			activeNetParams.Params)
-		if err != nil {
-			return nil, &btcjson.RPCError{
-				Code:    btcjson.ErrRPCInvalidAddressOrKey,
-				Message: "Invalid address or key: " + err.Error(),
-			}
-		}
-
-		// Ensure the address is one of the supported types and that
-		// the network encoded with the address matches the network the
-		// server is currently on.
-		switch addr.(type) {
-		case *btcutil.AddressPubKeyHash:
-		case *btcutil.AddressScriptHash:
-		default:
-			return nil, &btcjson.RPCError{
-				Code:    btcjson.ErrRPCInvalidAddressOrKey,
-				Message: "Invalid address or key",
-			}
-		}
-		if !addr.IsForNet(s.server.chainParams) {
-			return nil, &btcjson.RPCError{
-				Code: btcjson.ErrRPCInvalidAddressOrKey,
-				Message: "Invalid address: " + encodedAddr +
-					" is for the wrong network",
-			}
-		}
-
-		// Create a new script which pays to the provided address.
-		pkScript, err := txscript.PayToAddrScript(addr)
-		if err != nil {
-			context := "Failed to generate pay-to-address script"
-			return nil, internalRPCError(err.Error(), context)
-		}
-
-		// Convert the amount to satoshi.
-		satoshi, err := btcutil.NewAmount(amount)
-		if err != nil {
-			context := "Failed to convert amount"
-			return nil, internalRPCError(err.Error(), context)
-		}
-
-		txOut := wire.NewTxOut(int64(satoshi), pkScript)
-		mtx.AddTxOut(txOut)
-	}
-
-	// Set the Locktime, if given.
-	if c.LockTime != nil {
-		mtx.LockTime = uint32(*c.LockTime)
-	}
-
-	// Return the serialized and hex-encoded transaction.  Note that this
-	// is intentionally not directly returning because the first return
-	// value is a string and it would result in returning an empty string to
-	// the client instead of nothing (nil) in the case of an error.
-	mtxHex, err := messageToHex(mtx)
-	if err != nil {
-		return nil, err
-	}
-	return mtxHex, nil
+	return nil, nil
 }
 
 // handleDebugLevel handles debuglevel commands.
@@ -612,37 +512,6 @@ func handleDebugLevel(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) 
 	return "Done.", nil
 }
 
-// createVinList returns a slice of JSON objects for the inputs of the passed
-// transaction.
-func createVinList(mtx *wire.MsgTx) []btcjson.Vin {
-	// Coinbase transactions only have a single txin by definition.
-	vinList := make([]btcjson.Vin, len(mtx.TxIn))
-	if blockchain.IsCoinBaseTx(mtx) {
-		txIn := mtx.TxIn[0]
-		vinList[0].Coinbase = hex.EncodeToString(txIn.SignatureScript)
-		vinList[0].Sequence = txIn.Sequence
-		return vinList
-	}
-
-	for i, txIn := range mtx.TxIn {
-		// The disassembled string will contain [error] inline
-		// if the script doesn't fully parse, so ignore the
-		// error here.
-		disbuf, _ := txscript.DisasmString(txIn.SignatureScript)
-
-		vinEntry := &vinList[i]
-		vinEntry.Txid = txIn.PreviousOutPoint.Hash.String()
-		vinEntry.Vout = txIn.PreviousOutPoint.Index
-		vinEntry.Sequence = txIn.Sequence
-		vinEntry.ScriptSig = &btcjson.ScriptSig{
-			Asm: disbuf,
-			Hex: hex.EncodeToString(txIn.SignatureScript),
-		}
-	}
-
-	return vinList
-}
-
 // stringInSlice returns true if string a is found in array list.
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
@@ -651,155 +520,6 @@ func stringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
-}
-
-// createVinList returns a slice of JSON objects for the inputs of the passed
-// transaction.
-func createVinListPrevOut(s *rpcServer, mtx *wire.MsgTx, chainParams *chaincfg.Params, vinExtra int, filterAddrMap map[string]struct{}) []btcjson.VinPrevOut {
-	// Use a dynamically sized list to accomodate the address filter.
-	vinList := make([]btcjson.VinPrevOut, 0, len(mtx.TxIn))
-
-	// Coinbase transactions only have a single txin by definition.
-	if blockchain.IsCoinBaseTx(mtx) {
-		// Include tx only if filterAddrMap is empty because coinbase
-		// has no address and so would never match a non-empty filter.
-		if len(filterAddrMap) != 0 {
-			return vinList
-		}
-
-		var vinEntry btcjson.VinPrevOut
-		txIn := mtx.TxIn[0]
-		vinEntry.Coinbase = hex.EncodeToString(txIn.SignatureScript)
-		vinEntry.Sequence = txIn.Sequence
-		vinList = append(vinList, vinEntry)
-		return vinList
-	}
-
-	// Lookup all of the referenced transactions needed to populate the
-	// previous output information if requested.
-	var txStore blockchain.TxStore
-	if vinExtra != 0 || len(filterAddrMap) > 0 {
-		tx := btcutil.NewTx(mtx)
-		txStoreNew, err := s.server.txMemPool.fetchInputTransactions(tx, true)
-		if err == nil {
-			txStore = txStoreNew
-		}
-	}
-
-	for _, txIn := range mtx.TxIn {
-		// The disassembled string will contain [error] inline
-		// if the script doesn't fully parse, so ignore the
-		// error here.
-		disbuf, _ := txscript.DisasmString(txIn.SignatureScript)
-
-		txData := txStore[txIn.PreviousOutPoint.Hash]
-		if txData == nil {
-			continue
-		}
-
-		originTxOut := txData.Tx.MsgTx().TxOut[txIn.PreviousOutPoint.Index]
-
-		// Ignore the error here since an error means the script
-		// couldn't parse and there is no additional information about
-		// it anyways.
-		_, addrs, _, _ := txscript.ExtractPkScriptAddrs(
-			originTxOut.PkScript, chainParams)
-
-		// Encode the addresses while checking if the address passes the
-		// filter when needed.
-		passesFilter := len(filterAddrMap) == 0
-		encodedAddrs := make([]string, len(addrs))
-		for j, addr := range addrs {
-			encodedAddr := addr.EncodeAddress()
-			encodedAddrs[j] = encodedAddr
-
-			// No need to check the map again if the filter already
-			// passes.
-			if passesFilter {
-				continue
-			}
-			if _, exists := filterAddrMap[encodedAddr]; exists {
-				passesFilter = true
-			}
-		}
-
-		if !passesFilter {
-			continue
-		}
-
-		var vinEntry btcjson.VinPrevOut
-		vinEntry.Txid = txIn.PreviousOutPoint.Hash.String()
-		vinEntry.Vout = txIn.PreviousOutPoint.Index
-		vinEntry.Sequence = txIn.Sequence
-		vinEntry.ScriptSig = &btcjson.ScriptSig{
-			Asm: disbuf,
-			Hex: hex.EncodeToString(txIn.SignatureScript),
-		}
-
-		// Only populate previous output information if requested
-		if vinExtra != 0 {
-			vinEntry.PrevOut = &btcjson.PrevOut{
-				Addresses: encodedAddrs,
-				Value:     btcutil.Amount(originTxOut.Value).ToBTC(),
-			}
-		}
-
-		vinList = append(vinList, vinEntry)
-	}
-
-	return vinList
-}
-
-// createVoutList returns a slice of JSON objects for the outputs of the passed
-// transaction.
-func createVoutList(mtx *wire.MsgTx, chainParams *chaincfg.Params, filterAddrMap map[string]struct{}) []btcjson.Vout {
-	voutList := make([]btcjson.Vout, 0, len(mtx.TxOut))
-	for i, v := range mtx.TxOut {
-		// The disassembled string will contain [error] inline if the
-		// script doesn't fully parse, so ignore the error here.
-		disbuf, _ := txscript.DisasmString(v.PkScript)
-
-		// Ignore the error here since an error means the script
-		// couldn't parse and there is no additional information about
-		// it anyways.
-		scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
-			v.PkScript, chainParams)
-
-		// Encode the addresses while checking if the address passes the
-		// filter when needed.
-		passesFilter := len(filterAddrMap) == 0
-		encodedAddrs := make([]string, len(addrs))
-		for j, addr := range addrs {
-			encodedAddr := addr.EncodeAddress()
-			encodedAddrs[j] = encodedAddr
-
-			// No need to check the map again if the filter already
-			// passes.
-			if passesFilter {
-				continue
-			}
-			if _, exists := filterAddrMap[encodedAddr]; exists {
-				passesFilter = true
-			}
-		}
-
-		if !passesFilter {
-			continue
-		}
-
-		var vout btcjson.Vout
-		vout.N = uint32(i)
-		vout.Value = btcutil.Amount(v.Value).ToBTC()
-		vout.ScriptPubKey.Addresses = encodedAddrs
-		vout.ScriptPubKey.Asm = disbuf
-		vout.ScriptPubKey.Hex = hex.EncodeToString(v.PkScript)
-		vout.ScriptPubKey.Type = scriptClass.String()
-		vout.ScriptPubKey.ReqSigs = int32(reqSigs)
-
-		voutList = append(voutList, vout)
-	}
-
-	return voutList
 }
 
 // createSearchRawTransactionsResult converts the passed transaction and associated parameters
@@ -822,9 +542,6 @@ func createSearchRawTransactionsResult(s *rpcServer, chainParams *chaincfg.Param
 	txReply := &btcjson.SearchRawTransactionsResult{
 		Hex:      mtxHex,
 		Txid:     txHash,
-		Vout:     createVoutList(mtx, chainParams, filterAddrMap),
-		Vin:      createVinListPrevOut(s, mtx, chainParams, vinExtra, filterAddrMap),
-		Version:  mtx.Version,
 		LockTime: mtx.LockTime,
 	}
 
@@ -853,9 +570,6 @@ func createTxRawResult(chainParams *chaincfg.Params, mtx *wire.MsgTx,
 	txReply := &btcjson.TxRawResult{
 		Hex:      mtxHex,
 		Txid:     txHash,
-		Vout:     createVoutList(mtx, chainParams, nil),
-		Vin:      createVinList(mtx),
-		Version:  mtx.Version,
 		LockTime: mtx.LockTime,
 	}
 
@@ -895,58 +609,9 @@ func handleDecodeRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan 
 	// Create and return the result.
 	txReply := btcjson.TxRawDecodeResult{
 		Txid:     mtx.TxSha().String(),
-		Version:  mtx.Version,
 		Locktime: mtx.LockTime,
-		Vin:      createVinList(&mtx),
-		Vout:     createVoutList(&mtx, s.server.chainParams, nil),
 	}
 	return txReply, nil
-}
-
-// handleDecodeScript handles decodescript commands.
-func handleDecodeScript(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.DecodeScriptCmd)
-
-	// Convert the hex script to bytes.
-	hexStr := c.HexScript
-	if len(hexStr)%2 != 0 {
-		hexStr = "0" + hexStr
-	}
-	script, err := hex.DecodeString(hexStr)
-	if err != nil {
-		return nil, rpcDecodeHexError(hexStr)
-	}
-
-	// The disassembled string will contain [error] inline if the script
-	// doesn't fully parse, so ignore the error here.
-	disbuf, _ := txscript.DisasmString(script)
-
-	// Get information about the script.
-	// Ignore the error here since an error means the script couldn't parse
-	// and there is no additinal information about it anyways.
-	scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(script,
-		s.server.chainParams)
-	addresses := make([]string, len(addrs))
-	for i, addr := range addrs {
-		addresses[i] = addr.EncodeAddress()
-	}
-
-	// Convert the script itself to a pay-to-script-hash address.
-	p2sh, err := btcutil.NewAddressScriptHash(script, s.server.chainParams)
-	if err != nil {
-		context := "Failed to convert script to pay-to-script-hash"
-		return nil, internalRPCError(err.Error(), context)
-	}
-
-	// Generate and return the reply.
-	reply := btcjson.DecodeScriptResult{
-		Asm:       disbuf,
-		ReqSigs:   int32(reqSigs),
-		Type:      scriptClass.String(),
-		Addresses: addresses,
-		P2sh:      p2sh.EncodeAddress(),
-	}
-	return reply, nil
 }
 
 // handleGenerate handles generate commands.
@@ -1543,38 +1208,6 @@ func (state *gbtWorkState) updateBlockTemplate(s *rpcServer, useCoinbaseValue bo
 		// template.
 		state.notifyLongPollers(latestHash, lastTxUpdate)
 	} else {
-		// At this point, there is a saved block template and another
-		// request for a template was made, but either the available
-		// transactions haven't change or it hasn't been long enough to
-		// trigger a new block template to be generated.  So, update the
-		// existing block template.
-
-		// When the caller requires a full coinbase as opposed to only
-		// the pertinent details needed to create their own coinbase,
-		// add a payment address to the output of the coinbase of the
-		// template if it doesn't already have one.  Since this requires
-		// mining addresses to be specified via the config, an error is
-		// returned if none have been specified.
-		if !useCoinbaseValue && !template.validPayAddress {
-			// Choose a payment address at random.
-			payToAddr := cfg.miningAddrs[rand.Intn(len(cfg.miningAddrs))]
-
-			// Update the block coinbase output of the template to
-			// pay to the randomly selected payment address.
-			pkScript, err := txscript.PayToAddrScript(payToAddr)
-			if err != nil {
-				context := "Failed to create pay-to-addr script"
-				return internalRPCError(err.Error(), context)
-			}
-			template.block.Transactions[0].TxOut[0].PkScript = pkScript
-			template.validPayAddress = true
-
-			// Update the merkle root.
-			block := btcutil.NewBlock(template.block)
-			merkles := blockchain.BuildMerkleTreeStore(block.Transactions())
-			template.block.Header.MerkleRoot = *merkles[len(merkles)-1]
-		}
-
 		// Set locals for convenience.
 		msgBlock = template.block
 		targetDifficulty = fmt.Sprintf("%064x",
@@ -1634,23 +1267,6 @@ func (state *gbtWorkState) blockTemplateResult(useCoinbaseValue bool, submitOld 
 			continue
 		}
 
-		// Create an array of 1-based indices to transactions that come
-		// before this one in the transactions list which this one
-		// depends on.  This is necessary since the created block must
-		// ensure proper ordering of the dependencies.  A map is used
-		// before creating the final array to prevent duplicate entries
-		// when multiple inputs reference the same transaction.
-		dependsMap := make(map[int64]struct{})
-		for _, txIn := range tx.TxIn {
-			if idx, ok := txIndex[txIn.PreviousOutPoint.Hash]; ok {
-				dependsMap[idx] = struct{}{}
-			}
-		}
-		depends := make([]int64, 0, len(dependsMap))
-		for idx := range dependsMap {
-			depends = append(depends, idx)
-		}
-
 		// Serialize the transaction for later conversion to hex.
 		txBuf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
 		if err := tx.Serialize(txBuf); err != nil {
@@ -1659,11 +1275,8 @@ func (state *gbtWorkState) blockTemplateResult(useCoinbaseValue bool, submitOld 
 		}
 
 		resultTx := btcjson.GetBlockTemplateResultTx{
-			Data:    hex.EncodeToString(txBuf.Bytes()),
-			Hash:    txHash.String(),
-			Depends: depends,
-			Fee:     template.fees[i],
-			SigOps:  template.sigOpCounts[i],
+			Data: hex.EncodeToString(txBuf.Bytes()),
+			Hash: txHash.String(),
 		}
 		transactions = append(transactions, resultTx)
 	}
@@ -1691,40 +1304,6 @@ func (state *gbtWorkState) blockTemplateResult(useCoinbaseValue bool, submitOld 
 		Mutable:      gbtMutableFields,
 		NonceRange:   gbtNonceRange,
 		Capabilities: gbtCapabilities,
-	}
-	if useCoinbaseValue {
-		reply.CoinbaseAux = gbtCoinbaseAux
-		reply.CoinbaseValue = &msgBlock.Transactions[0].TxOut[0].Value
-	} else {
-		// Ensure the template has a valid payment address associated
-		// with it when a full coinbase is requested.
-		if !template.validPayAddress {
-			return nil, &btcjson.RPCError{
-				Code: btcjson.ErrRPCInternal.Code,
-				Message: "A coinbase transaction has been " +
-					"requested, but the server has not " +
-					"been configured with any payment " +
-					"addresses via --miningaddr",
-			}
-		}
-
-		// Serialize the transaction for conversion to hex.
-		tx := msgBlock.Transactions[0]
-		txBuf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
-		if err := tx.Serialize(txBuf); err != nil {
-			context := "Failed to serialize transaction"
-			return nil, internalRPCError(err.Error(), context)
-		}
-
-		resultTx := btcjson.GetBlockTemplateResultTx{
-			Data:    hex.EncodeToString(txBuf.Bytes()),
-			Hash:    tx.TxSha().String(),
-			Depends: []int64{},
-			Fee:     template.fees[0],
-			SigOps:  template.sigOpCounts[0],
-		}
-
-		reply.CoinbaseTxn = &resultTx
 	}
 
 	return &reply, nil
@@ -2412,13 +1991,13 @@ func handleGetRawMempool(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 				CurrentPriority:  currentPriority,
 				Depends:          make([]string, 0),
 			}
-			for _, txIn := range tx.MsgTx().TxIn {
-				hash := &txIn.PreviousOutPoint.Hash
-				if s.server.txMemPool.haveTransaction(hash) {
-					mpd.Depends = append(mpd.Depends,
-						hash.String())
-				}
-			}
+			// for _, txIn := range tx.MsgTx().TxIn {
+			// 	hash := &txIn.PreviousOutPoint.Hash
+			// 	if s.server.txMemPool.haveTransaction(hash) {
+			// 		mpd.Depends = append(mpd.Depends,
+			// 			hash.String())
+			// 	}
+			// }
 
 			result[tx.Sha().String()] = mpd
 		}
@@ -2548,121 +2127,6 @@ func reverseUint32Array(b []byte) {
 	}
 }
 
-// handleGetTxOut handles gettxout commands.
-func handleGetTxOut(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.GetTxOutCmd)
-
-	// Convert the provided transaction hash hex to a ShaHash.
-	txHash, err := wire.NewShaHashFromStr(c.Txid)
-	if err != nil {
-		return nil, rpcDecodeHexError(c.Txid)
-	}
-
-	// If requested and the tx is available in the mempool try to fetch it
-	// from there, otherwise attempt to fetch from the block database.
-	var mtx *wire.MsgTx
-	var bestBlockSha string
-	var confirmations int32
-	var dbSpentInfo []bool
-	includeMempool := true
-	if c.IncludeMempool != nil {
-		includeMempool = *c.IncludeMempool
-	}
-	// TODO: This is racy.  It should attempt to fetch it directly and check
-	// the error.
-	if includeMempool && s.server.txMemPool.HaveTransaction(txHash) {
-		tx, err := s.server.txMemPool.FetchTransaction(txHash)
-		if err != nil {
-			return nil, &btcjson.RPCError{
-				Code:    btcjson.ErrRPCNoTxInfo,
-				Message: "No information available about transaction",
-			}
-		}
-		mtx = tx.MsgTx()
-		confirmations = 0
-		bestBlockSha = ""
-	} else {
-		txList, err := s.server.db.FetchTxBySha(txHash)
-		if err != nil || len(txList) == 0 {
-			return nil, &btcjson.RPCError{
-				Code:    btcjson.ErrRPCNoTxInfo,
-				Message: "No information available about transaction",
-			}
-		}
-
-		lastTx := txList[len(txList)-1]
-		mtx = lastTx.Tx
-		blkHash := lastTx.BlkSha
-		txHeight := lastTx.Height
-		dbSpentInfo = lastTx.TxSpent
-
-		_, bestHeight, err := s.server.db.NewestSha()
-		if err != nil {
-			context := "Failed to get newest hash"
-			return nil, internalRPCError(err.Error(), context)
-		}
-
-		confirmations = 1 + bestHeight - txHeight
-		bestBlockSha = blkHash.String()
-	}
-
-	if c.Vout > uint32(len(mtx.TxOut)-1) {
-		return nil, &btcjson.RPCError{
-			Code: btcjson.ErrRPCInvalidTxVout,
-			Message: "Ouput index number (vout) does not exist " +
-				"for transaction.",
-		}
-	}
-
-	txOut := mtx.TxOut[c.Vout]
-	if txOut == nil {
-		errStr := fmt.Sprintf("Output index: %d for txid: %s does "+
-			"not exist", c.Vout, c.Txid)
-		return nil, internalRPCError(errStr, "")
-	}
-
-	// To match the behavior of the reference client, this handler returns
-	// nil (JSON null) if the transaction output is spent by another
-	// transaction already in the database.  Unspent transaction outputs
-	// from transactions in mempool, as well as mined transactions that are
-	// spent by a mempool transaction, are not affected by this.
-	if dbSpentInfo != nil && dbSpentInfo[c.Vout] {
-		return nil, nil
-	}
-
-	// Disassemble script into single line printable format.
-	// The disassembled string will contain [error] inline if the script
-	// doesn't fully parse, so ignore the error here.
-	script := txOut.PkScript
-	disbuf, _ := txscript.DisasmString(script)
-
-	// Get further info about the script.
-	// Ignore the error here since an error means the script couldn't parse
-	// and there is no additional information about it anyways.
-	scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(script,
-		s.server.chainParams)
-	addresses := make([]string, len(addrs))
-	for i, addr := range addrs {
-		addresses[i] = addr.EncodeAddress()
-	}
-
-	txOutReply := &btcjson.GetTxOutResult{
-		BestBlock:     bestBlockSha,
-		Confirmations: int64(confirmations),
-		Value:         btcutil.Amount(txOut.Value).ToUnit(btcutil.AmountBTC),
-		Version:       mtx.Version,
-		ScriptPubKey: btcjson.ScriptPubKeyResult{
-			Asm:       disbuf,
-			Hex:       hex.EncodeToString(script),
-			ReqSigs:   int32(reqSigs),
-			Type:      scriptClass.String(),
-			Addresses: addresses,
-		},
-		Coinbase: blockchain.IsCoinBase(btcutil.NewTx(mtx)),
-	}
-	return txOutReply, nil
-}
-
 // handleGetWorkRequest is a helper for handleGetWork which deals with
 // generating and returning work to the caller.
 //
@@ -2711,12 +2175,11 @@ func handleGetWorkRequest(s *rpcServer) (interface{}, error) {
 		state.prevHash = latestHash
 
 		rpcsLog.Debugf("Generated block template (timestamp %v, extra "+
-			"nonce %d, target %064x, merkle root %s, signature "+
-			"script %x)", msgBlock.Header.Timestamp,
+			"nonce %d, target %064x, merkle root %s)",
+			msgBlock.Header.Timestamp,
 			state.extraNonce,
 			blockchain.CompactToBig(msgBlock.Header.Bits),
-			msgBlock.Header.MerkleRoot,
-			msgBlock.Transactions[0].TxIn[0].SignatureScript)
+			msgBlock.Header.MerkleRoot)
 	} else {
 		// At this point, there is a saved block template and a new
 		// request for work was made, but either the available
@@ -2743,12 +2206,11 @@ func handleGetWorkRequest(s *rpcServer) (interface{}, error) {
 		}
 
 		rpcsLog.Debugf("Updated block template (timestamp %v, extra "+
-			"nonce %d, target %064x, merkle root %s, signature "+
-			"script %x)", msgBlock.Header.Timestamp,
+			"nonce %d, target %064x, merkle root %s",
+			msgBlock.Header.Timestamp,
 			state.extraNonce,
 			blockchain.CompactToBig(msgBlock.Header.Bits),
-			msgBlock.Header.MerkleRoot,
-			msgBlock.Transactions[0].TxIn[0].SignatureScript)
+			msgBlock.Header.MerkleRoot)
 	}
 
 	// In order to efficiently store the variations of block templates that
@@ -2757,10 +2219,8 @@ func handleGetWorkRequest(s *rpcServer) (interface{}, error) {
 	// information, along with the data that is included in a work
 	// submission, is used to rebuild the block before checking the
 	// submitted solution.
-	coinbaseTx := msgBlock.Transactions[0]
 	state.blockInfo[msgBlock.Header.MerkleRoot] = &workStateBlockInfo{
-		msgBlock:        msgBlock,
-		signatureScript: coinbaseTx.TxIn[0].SignatureScript,
+		msgBlock: msgBlock,
 	}
 
 	// Serialize the block header into a buffer large enough to hold the
@@ -2884,7 +2344,6 @@ func handleGetWorkSubmission(s *rpcServer, hexData string) (interface{}, error) 
 	block := btcutil.NewBlock(msgBlock)
 	msgBlock.Header.Timestamp = submittedHeader.Timestamp
 	msgBlock.Header.Nonce = submittedHeader.Nonce
-	msgBlock.Transactions[0].TxIn[0].SignatureScript = blockInfo.signatureScript
 	merkles := blockchain.BuildMerkleTreeStore(block.Transactions())
 	msgBlock.Header.MerkleRoot = *merkles[len(merkles)-1]
 

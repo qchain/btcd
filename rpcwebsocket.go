@@ -272,8 +272,7 @@ func (m *wsNotificationManager) notificationHandler() {
 	// since it is quite a bit more efficient than using the entire struct.
 	blockNotifications := make(map[chan struct{}]*wsClient)
 	txNotifications := make(map[chan struct{}]*wsClient)
-	watchedOutPoints := make(map[wire.OutPoint]map[chan struct{}]*wsClient)
-	watchedAddrs := make(map[string]map[chan struct{}]*wsClient)
+	//watchedAddrs := make(map[string]map[chan struct{}]*wsClient)
 
 out:
 	for {
@@ -286,15 +285,6 @@ out:
 			switch n := n.(type) {
 			case *notificationBlockConnected:
 				block := (*btcutil.Block)(n)
-
-				// Skip iterating through all txs if no
-				// tx notification requests exist.
-				if len(watchedOutPoints) != 0 || len(watchedAddrs) != 0 {
-					for _, tx := range block.Transactions() {
-						m.notifyForTx(watchedOutPoints,
-							watchedAddrs, tx, block)
-					}
-				}
 
 				if len(blockNotifications) != 0 {
 					m.notifyBlockConnected(blockNotifications,
@@ -309,7 +299,6 @@ out:
 				if n.isNew && len(txNotifications) != 0 {
 					m.notifyForNewTx(txNotifications, n.tx)
 				}
-				m.notifyForTx(watchedOutPoints, watchedAddrs, n.tx, nil)
 
 			case *notificationRegisterBlocks:
 				wsc := (*wsClient)(n)
@@ -439,12 +428,7 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 	txShaStr := tx.Sha().String()
 	mtx := tx.MsgTx()
 
-	var amount int64
-	for _, txOut := range mtx.TxOut {
-		amount += txOut.Value
-	}
-
-	ntfn := btcjson.NewTxAcceptedNtfn(txShaStr, btcutil.Amount(amount).ToBTC())
+	var ntfn = btcjson.NewTxAcceptedNtfn(txShaStr)
 	marshalledJSON, err := btcjson.MarshalCmd(nil, ntfn)
 	if err != nil {
 		rpcsLog.Errorf("Failed to marshal tx notification: %s", err.Error())
@@ -1290,27 +1274,6 @@ func handleNotifyReceived(wsc *wsClient, icmd interface{}) (interface{}, error) 
 		return nil, err
 	}
 
-	wsc.server.ntfnMgr.RegisterTxOutAddressRequests(wsc, cmd.Addresses)
-	return nil, nil
-}
-
-// handleStopNotifySpent implements the stopnotifyspent command extension for
-// websocket connections.
-func handleStopNotifySpent(wsc *wsClient, icmd interface{}) (interface{}, error) {
-	cmd, ok := icmd.(*btcjson.StopNotifySpentCmd)
-	if !ok {
-		return nil, btcjson.ErrRPCInternal
-	}
-
-	outpoints, err := deserializeOutpoints(cmd.OutPoints)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, outpoint := range outpoints {
-		wsc.server.ntfnMgr.UnregisterSpentRequest(wsc, outpoint)
-	}
-
 	return nil, nil
 }
 
@@ -1327,10 +1290,6 @@ func handleStopNotifyReceived(wsc *wsClient, icmd interface{}) (interface{}, err
 	err := checkAddressValidity(cmd.Addresses)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, addr := range cmd.Addresses {
-		wsc.server.ntfnMgr.UnregisterTxOutAddressRequest(wsc, addr)
 	}
 
 	return nil, nil
@@ -1381,125 +1340,32 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *btcutil.Block) {
 		// modify the unspent map, however, just a single notification
 		// for any matching transaction inputs or outputs should be
 		// created and sent.
-		spentNotified := false
 		recvNotified := false
 
-		for _, txin := range tx.MsgTx().TxIn {
-			if _, ok := lookups.unspent[txin.PreviousOutPoint]; ok {
-				delete(lookups.unspent, txin.PreviousOutPoint)
-
-				if spentNotified {
-					continue
-				}
-
-				if txHex == "" {
-					txHex = txHexString(tx)
-				}
-				marshalledJSON, err := newRedeemingTxNotification(txHex, tx.Index(), blk)
-				if err != nil {
-					rpcsLog.Errorf("Failed to marshal redeemingtx notification: %v", err)
-					continue
-				}
-
-				err = wsc.QueueNotification(marshalledJSON)
-				// Stop the rescan early if the websocket client
-				// disconnected.
-				if err == ErrClientQuit {
-					return
-				}
-				spentNotified = true
-			}
+		if recvNotified {
+			continue
 		}
 
-		for txOutIdx, txout := range tx.MsgTx().TxOut {
-			_, addrs, _, _ := txscript.ExtractPkScriptAddrs(
-				txout.PkScript, wsc.server.server.chainParams)
-
-			for _, addr := range addrs {
-				switch a := addr.(type) {
-				case *btcutil.AddressPubKeyHash:
-					if _, ok := lookups.pubKeyHashes[*a.Hash160()]; !ok {
-						continue
-					}
-
-				case *btcutil.AddressScriptHash:
-					if _, ok := lookups.scriptHashes[*a.Hash160()]; !ok {
-						continue
-					}
-
-				case *btcutil.AddressPubKey:
-					found := false
-					switch sa := a.ScriptAddress(); len(sa) {
-					case 33: // Compressed
-						var key [33]byte
-						copy(key[:], sa)
-						if _, ok := lookups.compressedPubKeys[key]; ok {
-							found = true
-						}
-
-					case 65: // Uncompressed
-						var key [65]byte
-						copy(key[:], sa)
-						if _, ok := lookups.uncompressedPubKeys[key]; ok {
-							found = true
-						}
-
-					default:
-						rpcsLog.Warnf("Skipping rescanned pubkey of unknown "+
-							"serialized length %d", len(sa))
-						continue
-					}
-
-					// If the transaction output pays to the pubkey of
-					// a rescanned P2PKH address, include it as well.
-					if !found {
-						pkh := a.AddressPubKeyHash()
-						if _, ok := lookups.pubKeyHashes[*pkh.Hash160()]; !ok {
-							continue
-						}
-					}
-
-				default:
-					// A new address type must have been added.  Encode as a
-					// payment address string and check the fallback map.
-					addrStr := addr.EncodeAddress()
-					_, ok := lookups.fallbacks[addrStr]
-					if !ok {
-						continue
-					}
-				}
-
-				outpoint := wire.OutPoint{
-					Hash:  *tx.Sha(),
-					Index: uint32(txOutIdx),
-				}
-				lookups.unspent[outpoint] = struct{}{}
-
-				if recvNotified {
-					continue
-				}
-
-				if txHex == "" {
-					txHex = txHexString(tx)
-				}
-				ntfn := btcjson.NewRecvTxNtfn(txHex,
-					blockDetails(blk, tx.Index()))
-
-				marshalledJSON, err := btcjson.MarshalCmd(nil, ntfn)
-				if err != nil {
-					rpcsLog.Errorf("Failed to marshal recvtx notification: %v", err)
-					return
-				}
-
-				err = wsc.QueueNotification(marshalledJSON)
-				// Stop the rescan early if the websocket client
-				// disconnected.
-				if err == ErrClientQuit {
-					return
-				}
-				recvNotified = true
-			}
+		if txHex == "" {
+			txHex = txHexString(tx)
 		}
+		ntfn := btcjson.NewRecvTxNtfn(txHex,
+			blockDetails(blk, tx.Index()))
+
+		marshalledJSON, err := btcjson.MarshalCmd(nil, ntfn)
+		if err != nil {
+			rpcsLog.Errorf("Failed to marshal recvtx notification: %v", err)
+			return
+		}
+
+		err = wsc.QueueNotification(marshalledJSON)
+		// Stop the rescan early if the websocket client
+		// disconnected.
+		if err == ErrClientQuit {
+			return
+		}
+		recvNotified = true
+
 	}
 }
 
@@ -1566,16 +1432,6 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 		return nil, btcjson.ErrRPCInternal
 	}
 
-	outpoints := make([]*wire.OutPoint, 0, len(cmd.OutPoints))
-	for i := range cmd.OutPoints {
-		blockHash, err := wire.NewShaHashFromStr(cmd.OutPoints[i].Hash)
-		if err != nil {
-			return nil, rpcDecodeHexError(cmd.OutPoints[i].Hash)
-		}
-		index := cmd.OutPoints[i].Index
-		outpoints = append(outpoints, wire.NewOutPoint(blockHash, index))
-	}
-
 	numAddrs := len(cmd.Addresses)
 	if numAddrs == 1 {
 		rpcsLog.Info("Beginning rescan for 1 address")
@@ -1587,10 +1443,8 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	lookups := rescanKeys{
 		fallbacks:           map[string]struct{}{},
 		pubKeyHashes:        map[[ripemd160.Size]byte]struct{}{},
-		scriptHashes:        map[[ripemd160.Size]byte]struct{}{},
 		compressedPubKeys:   map[[33]byte]struct{}{},
 		uncompressedPubKeys: map[[65]byte]struct{}{},
-		unspent:             map[wire.OutPoint]struct{}{},
 	}
 	var compressedPubkey [33]byte
 	var uncompressedPubkey [65]byte
@@ -1636,9 +1490,6 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 			// is added.
 			lookups.fallbacks[addrStr] = struct{}{}
 		}
-	}
-	for _, outpoint := range outpoints {
-		lookups.unspent[*outpoint] = struct{}{}
 	}
 
 	db := wsc.server.server.db
