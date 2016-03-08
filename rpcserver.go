@@ -33,7 +33,6 @@ import (
 	"github.com/qchain/btcd/chaincfg"
 	"github.com/qchain/btcd/database"
 	"github.com/qchain/btcd/mining"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 	"github.com/qchain/fastsha256"
@@ -500,7 +499,7 @@ func peerExists(peers []*serverPeer, addr string, nodeID int32) bool {
 // latest protocol version and returns a hex-encoded string of the result.
 func messageToHex(msg wire.Message) (string, error) {
 	var buf bytes.Buffer
-	if err := msg.BtcEncode(&buf, maxProtocolVersion); err != nil {
+	if err := msg.MsgEncode(&buf, maxProtocolVersion); err != nil {
 		context := fmt.Sprintf("Failed to encode msg of type %T", msg)
 		return "", internalRPCError(err.Error(), context)
 	}
@@ -1330,7 +1329,7 @@ func handleGetBlockHeader(s *rpcServer, cmd interface{}, closeChan <-chan struct
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, wire.MaxBlockHeaderPayload))
-	if err = blkHeader.BtcEncode(buf, maxProtocolVersion); err != nil {
+	if err = blkHeader.MsgEncode(buf, maxProtocolVersion); err != nil {
 		errStr := fmt.Sprintf("Failed to serialize data: %v", err)
 		return nil, internalRPCError(errStr, "")
 	}

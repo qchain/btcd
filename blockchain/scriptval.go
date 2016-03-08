@@ -9,7 +9,6 @@ import (
 	"math"
 	"runtime"
 
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 )

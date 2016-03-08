@@ -19,7 +19,6 @@ import (
 
 	"github.com/qchain/btcd/btcjson"
 	"github.com/qchain/btcd/database"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 	"github.com/qchain/fastsha256"

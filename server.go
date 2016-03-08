@@ -25,7 +25,6 @@ import (
 	"github.com/qchain/btcd/database"
 	"github.com/qchain/btcd/mining"
 	"github.com/qchain/btcd/peer"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 	"github.com/qchain/btcutil/bloom"

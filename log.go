@@ -14,7 +14,6 @@ import (
 	"github.com/qchain/btcd/blockchain"
 	database "github.com/qchain/btcd/database2"
 	"github.com/qchain/btcd/peer"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btclog"
 	"github.com/qchain/seelog"

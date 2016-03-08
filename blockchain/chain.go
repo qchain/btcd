@@ -15,7 +15,6 @@ import (
 
 	"github.com/qchain/btcd/chaincfg"
 	"github.com/qchain/btcd/database"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 )

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/qchain/btcd/blockchain"
-	"github.com/qchain/btcd/txscript"
 )
 
 // TestCheckBlockScripts ensures that validating the all of the scripts in a

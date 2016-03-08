@@ -46,9 +46,9 @@ func (msg *MsgGetBlocks) AddBlockLocatorHash(hash *ShaHash) error {
 	return nil
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgGetBlocks) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgGetBlocks) MsgDecode(r io.Reader, pver uint32) error {
 	err := readElement(r, &msg.ProtocolVersion)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func (msg *MsgGetBlocks) BtcDecode(r io.Reader, pver uint32) error {
 	if count > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message "+
 			"[count %v, max %v]", count, MaxBlockLocatorsPerMsg)
-		return messageError("MsgGetBlocks.BtcDecode", str)
+		return messageError("MsgGetBlocks.MsgDecode", str)
 	}
 
 	msg.BlockLocatorHashes = make([]*ShaHash, 0, count)
@@ -83,14 +83,14 @@ func (msg *MsgGetBlocks) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgGetBlocks) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgGetBlocks) MsgEncode(w io.Writer, pver uint32) error {
 	count := len(msg.BlockLocatorHashes)
 	if count > MaxBlockLocatorsPerMsg {
 		str := fmt.Sprintf("too many block locator hashes for message "+
 			"[count %v, max %v]", count, MaxBlockLocatorsPerMsg)
-		return messageError("MsgGetBlocks.BtcEncode", str)
+		return messageError("MsgGetBlocks.MsgEncode", str)
 	}
 
 	err := writeElement(w, msg.ProtocolVersion)

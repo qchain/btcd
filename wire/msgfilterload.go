@@ -49,13 +49,13 @@ type MsgFilterLoad struct {
 	Flags     BloomUpdateType
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgFilterLoad) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgFilterLoad) MsgDecode(r io.Reader, pver uint32) error {
 	if pver < BIP0037Version {
 		str := fmt.Sprintf("filterload message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgFilterLoad.BtcDecode", str)
+		return messageError("MsgFilterLoad.MsgDecode", str)
 	}
 
 	var err error
@@ -73,32 +73,32 @@ func (msg *MsgFilterLoad) BtcDecode(r io.Reader, pver uint32) error {
 	if msg.HashFuncs > MaxFilterLoadHashFuncs {
 		str := fmt.Sprintf("too many filter hash functions for message "+
 			"[count %v, max %v]", msg.HashFuncs, MaxFilterLoadHashFuncs)
-		return messageError("MsgFilterLoad.BtcDecode", str)
+		return messageError("MsgFilterLoad.MsgDecode", str)
 	}
 
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgFilterLoad) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgFilterLoad) MsgEncode(w io.Writer, pver uint32) error {
 	if pver < BIP0037Version {
 		str := fmt.Sprintf("filterload message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgFilterLoad.BtcEncode", str)
+		return messageError("MsgFilterLoad.MsgEncode", str)
 	}
 
 	size := len(msg.Filter)
 	if size > MaxFilterLoadFilterSize {
 		str := fmt.Sprintf("filterload filter size too large for message "+
 			"[size %v, max %v]", size, MaxFilterLoadFilterSize)
-		return messageError("MsgFilterLoad.BtcEncode", str)
+		return messageError("MsgFilterLoad.MsgEncode", str)
 	}
 
 	if msg.HashFuncs > MaxFilterLoadHashFuncs {
 		str := fmt.Sprintf("too many filter hash functions for message "+
 			"[count %v, max %v]", msg.HashFuncs, MaxFilterLoadHashFuncs)
-		return messageError("MsgFilterLoad.BtcEncode", str)
+		return messageError("MsgFilterLoad.MsgEncode", str)
 	}
 
 	err := WriteVarBytes(w, pver, msg.Filter)

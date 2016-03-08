@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btclog"
 )

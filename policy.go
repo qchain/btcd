@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/qchain/btcd/blockchain"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 )
