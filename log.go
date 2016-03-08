@@ -122,10 +122,6 @@ func useLogger(subsystemID string, logger btclog.Logger) {
 	case "RPCS":
 		rpcsLog = logger
 
-	case "SCRP":
-		scrpLog = logger
-		txscript.UseLogger(logger)
-
 	case "SRVR":
 		srvrLog = logger
 
@@ -209,7 +205,7 @@ func formatLockTime(lockTime uint32) string {
 	// which the transaction is finalized or a timestamp depending on if the
 	// value is before the txscript.LockTimeThreshold.  When it is under the
 	// threshold it is a block height.
-	if lockTime < txscript.LockTimeThreshold {
+	if lockTime < blockchain.LockTimeThreshold {
 		return fmt.Sprintf("height %d", lockTime)
 	}
 
@@ -306,10 +302,9 @@ func messageSummary(msg wire.Message) string {
 	case *wire.MsgMemPool:
 		// No summary.
 
-	case *wire.MsgTx:
-		return fmt.Sprintf("hash %s, %d inputs, %d outputs, lock %s",
-			msg.TxSha(), len(msg.TxIn), len(msg.TxOut),
-			formatLockTime(msg.LockTime))
+	case *wire.MsgTx: // TODO: Add more when a Tx better defined
+		return fmt.Sprintf("hash %s, lock %s",
+			msg.TxSha(), formatLockTime(msg.LockTime))
 
 	case *wire.MsgBlock:
 		header := &msg.Header
