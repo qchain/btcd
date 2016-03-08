@@ -620,25 +620,26 @@ func (b *blockManager) handleBlockMsg(bmsg *blockMsg) {
 
 	// Request the parents for the orphan block from the peer that sent it.
 	if isOrphan {
-		// We've just received an orphan block from a peer. In order
-		// to update the height of the peer, we try to extract the
-		// block height from the scriptSig of the coinbase transaction.
-		// Extraction is only attempted if the block's version is
-		// high enough (ver 2+).
-		header := &bmsg.block.MsgBlock().Header
-		if blockchain.ShouldHaveSerializedBlockHeight(header) {
-			coinbaseTx := bmsg.block.Transactions()[0]
-			cbHeight, err := blockchain.ExtractCoinbaseHeight(coinbaseTx)
-			if err != nil {
-				bmgrLog.Warnf("Unable to extract height from "+
-					"coinbase tx: %v", err)
-			} else {
-				bmgrLog.Debugf("Extracted height of %v from "+
-					"orphan block", cbHeight)
-				heightUpdate = int32(cbHeight)
-				blkShaUpdate = blockSha
-			}
-		}
+		// // We've just received an orphan block from a peer. In order
+		// // to update the height of the peer, we try to extract the
+		// // block height from the scriptSig of the coinbase transaction.
+		// // Extraction is only attempted if the block's version is
+		// // high enough (ver 2+).
+		// // TODO: Look into if this is needed
+		// header := &bmsg.block.MsgBlock().Header
+		// if blockchain.ShouldHaveSerializedBlockHeight(header) {
+		// 	coinbaseTx := bmsg.block.Transactions()[0]
+		// 	err := errors.New("Coinbase txs are removed") // blockchain.ExtractCoinbaseHeight(coinbaseTx)
+		// 	if err != nil {
+		// 		bmgrLog.Warnf("Unable to extract height from "+
+		// 			"coinbase tx: %v", err)
+		// 	} else {
+		// 		bmgrLog.Debugf("Extracted height of %v from "+
+		// 			"orphan block", cbHeight)
+		// 		heightUpdate = int32(cbHeight)
+		// 		blkShaUpdate = blockSha
+		// 	}
+		// }
 
 		orphanRoot := b.blockChain.GetOrphanRoot(blockSha)
 		locator, err := b.blockChain.LatestBlockLocator()
@@ -1448,8 +1449,7 @@ func newBlockManager(s *server) (*blockManager, error) {
 		quit:            make(chan struct{}),
 	}
 	bm.progressLogger = newBlockProgressLogger("Processed", bmgrLog)
-	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg,
-		s.sigCache)
+	bm.blockChain = blockchain.New(s.db, s.chainParams, bm.handleNotifyMsg)
 	bm.blockChain.DisableCheckpoints(cfg.DisableCheckpoints)
 	if !cfg.DisableCheckpoints {
 		// Initialize the next checkpoint based on the current height.

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/qchain/btcd/database"
 	"github.com/qchain/btcd/wire"
@@ -206,43 +207,46 @@ func (db *LevelDb) FetchTxByShaList(txShaList []*wire.ShaHash) []*database.TxLis
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	// until the fully spent separation of tx is complete this is identical
-	// to FetchUnSpentTxByShaList
-	replies := make([]*database.TxListReply, len(txShaList))
-	for i, txsha := range txShaList {
-		tx, blockSha, height, txspent, err := db.fetchTxDataBySha(txsha)
-		btxspent := []bool{}
-		if err == nil {
-			btxspent = make([]bool, len(tx.TxOut), len(tx.TxOut))
-			for idx := range tx.TxOut {
-				byteidx := idx / 8
-				byteoff := uint(idx % 8)
-				btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
-			}
-		}
-		if err == database.ErrTxShaMissing {
-			// if the unspent pool did not have the tx,
-			// look in the fully spent pool (only last instance)
+	// TODO: Implement this
+	fmt.Println("Method FetchTxByShaList in ldb/tx.go is not implemented")
 
-			sTxList, fSerr := db.getTxFullySpent(txsha)
-			if fSerr == nil && len(sTxList) != 0 {
-				idx := len(sTxList) - 1
-				stx := sTxList[idx]
+	// // until the fully spent separation of tx is complete this is identical
+	// // to FetchUnSpentTxByShaList
+	// replies := make([]*database.TxListReply, len(txShaList))
+	// for i, txsha := range txShaList {
+	// 	tx, blockSha, height, txspent, err := db.fetchTxDataBySha(txsha)
+	// 	btxspent := []bool{}
+	// 	if err == nil {
+	// 		btxspent = make([]bool, len(tx.TxOut), len(tx.TxOut))
+	// 		for idx := range tx.TxOut {
+	// 			byteidx := idx / 8
+	// 			byteoff := uint(idx % 8)
+	// 			btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
+	// 		}
+	// 	}
+	// 	if err == database.ErrTxShaMissing {
+	// 		// if the unspent pool did not have the tx,
+	// 		// look in the fully spent pool (only last instance)
 
-				tx, blockSha, _, _, err = db.fetchTxDataByLoc(
-					stx.blkHeight, stx.txoff, stx.txlen, []byte{})
-				if err == nil {
-					btxspent = make([]bool, len(tx.TxOut))
-					for i := range btxspent {
-						btxspent[i] = true
-					}
-				}
-			}
-		}
-		txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blockSha, Height: height, TxSpent: btxspent, Err: err}
-		replies[i] = &txlre
-	}
-	return replies
+	// 		sTxList, fSerr := db.getTxFullySpent(txsha)
+	// 		if fSerr == nil && len(sTxList) != 0 {
+	// 			idx := len(sTxList) - 1
+	// 			stx := sTxList[idx]
+
+	// 			tx, blockSha, _, _, err = db.fetchTxDataByLoc(
+	// 				stx.blkHeight, stx.txoff, stx.txlen, []byte{})
+	// 			if err == nil {
+	// 				btxspent = make([]bool, len(tx.TxOut))
+	// 				for i := range btxspent {
+	// 					btxspent[i] = true
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// 	txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blockSha, Height: height, TxSpent: btxspent, Err: err}
+	// 	replies[i] = &txlre
+	// }
+	return nil // replies
 }
 
 // FetchUnSpentTxByShaList given a array of ShaHash, look up the transactions
@@ -251,22 +255,25 @@ func (db *LevelDb) FetchUnSpentTxByShaList(txShaList []*wire.ShaHash) []*databas
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	replies := make([]*database.TxListReply, len(txShaList))
-	for i, txsha := range txShaList {
-		tx, blockSha, height, txspent, err := db.fetchTxDataBySha(txsha)
-		btxspent := []bool{}
-		if err == nil {
-			btxspent = make([]bool, len(tx.TxOut), len(tx.TxOut))
-			for idx := range tx.TxOut {
-				byteidx := idx / 8
-				byteoff := uint(idx % 8)
-				btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
-			}
-		}
-		txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blockSha, Height: height, TxSpent: btxspent, Err: err}
-		replies[i] = &txlre
-	}
-	return replies
+	// TODO: Implement this
+	fmt.Println("Method FetchUnSpentTxByShaList in tx.go is not implemented")
+
+	// replies := make([]*database.TxListReply, len(txShaList))
+	// for i, txsha := range txShaList {
+	// 	tx, blockSha, height, txspent, err := db.fetchTxDataBySha(txsha)
+	// 	btxspent := []bool{}
+	// 	if err == nil {
+	// 		btxspent = make([]bool, len(tx.TxOut), len(tx.TxOut))
+	// 		for idx := range tx.TxOut {
+	// 			byteidx := idx / 8
+	// 			byteoff := uint(idx % 8)
+	// 			btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
+	// 		}
+	// 	}
+	// 	txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blockSha, Height: height, TxSpent: btxspent, Err: err}
+	// 	replies[i] = &txlre
+	// }
+	return nil // replies
 }
 
 // fetchTxDataBySha returns several pieces of data regarding the given sha.
@@ -324,61 +331,64 @@ func (db *LevelDb) FetchTxBySha(txsha *wire.ShaHash) ([]*database.TxListReply, e
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	replylen := 0
-	replycnt := 0
+	// TODO: Implement this
+	fmt.Println("Method FetchTxBySha in Tx.go has not been implemented")
 
-	tx, blksha, height, txspent, txerr := db.fetchTxDataBySha(txsha)
-	if txerr == nil {
-		replylen++
-	} else {
-		if txerr != database.ErrTxShaMissing {
-			return []*database.TxListReply{}, txerr
-		}
-	}
+	// replylen := 0
+	// replycnt := 0
 
-	sTxList, fSerr := db.getTxFullySpent(txsha)
+	// tx, blksha, height, txspent, txerr := db.fetchTxDataBySha(txsha)
+	// if txerr == nil {
+	// 	replylen++
+	// } else {
+	// 	if txerr != database.ErrTxShaMissing {
+	// 		return []*database.TxListReply{}, txerr
+	// 	}
+	// }
 
-	if fSerr != nil {
-		if fSerr != database.ErrTxShaMissing {
-			return []*database.TxListReply{}, fSerr
-		}
-	} else {
-		replylen += len(sTxList)
-	}
+	// sTxList, fSerr := db.getTxFullySpent(txsha)
 
-	replies := make([]*database.TxListReply, replylen)
+	// if fSerr != nil {
+	// 	if fSerr != database.ErrTxShaMissing {
+	// 		return []*database.TxListReply{}, fSerr
+	// 	}
+	// } else {
+	// 	replylen += len(sTxList)
+	// }
 
-	if fSerr == nil {
-		for _, stx := range sTxList {
-			tx, blksha, _, _, err := db.fetchTxDataByLoc(
-				stx.blkHeight, stx.txoff, stx.txlen, []byte{})
-			if err != nil {
-				if err != leveldb.ErrNotFound {
-					return []*database.TxListReply{}, err
-				}
-				continue
-			}
-			btxspent := make([]bool, len(tx.TxOut), len(tx.TxOut))
-			for i := range btxspent {
-				btxspent[i] = true
-			}
-			txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blksha, Height: stx.blkHeight, TxSpent: btxspent, Err: nil}
-			replies[replycnt] = &txlre
-			replycnt++
-		}
-	}
-	if txerr == nil {
-		btxspent := make([]bool, len(tx.TxOut), len(tx.TxOut))
-		for idx := range tx.TxOut {
-			byteidx := idx / 8
-			byteoff := uint(idx % 8)
-			btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
-		}
-		txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blksha, Height: height, TxSpent: btxspent, Err: nil}
-		replies[replycnt] = &txlre
-		replycnt++
-	}
-	return replies, nil
+	// replies := make([]*database.TxListReply, replylen)
+
+	// if fSerr == nil {
+	// 	for _, stx := range sTxList {
+	// 		tx, blksha, _, _, err := db.fetchTxDataByLoc(
+	// 			stx.blkHeight, stx.txoff, stx.txlen, []byte{})
+	// 		if err != nil {
+	// 			if err != leveldb.ErrNotFound {
+	// 				return []*database.TxListReply{}, err
+	// 			}
+	// 			continue
+	// 		}
+	// 		btxspent := make([]bool, len(tx.TxOut), len(tx.TxOut))
+	// 		for i := range btxspent {
+	// 			btxspent[i] = true
+	// 		}
+	// 		txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blksha, Height: stx.blkHeight, TxSpent: btxspent, Err: nil}
+	// 		replies[replycnt] = &txlre
+	// 		replycnt++
+	// 	}
+	// }
+	// if txerr == nil {
+	// 	btxspent := make([]bool, len(tx.TxOut), len(tx.TxOut))
+	// 	for idx := range tx.TxOut {
+	// 		byteidx := idx / 8
+	// 		byteoff := uint(idx % 8)
+	// 		btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
+	// 	}
+	// 	txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blksha, Height: height, TxSpent: btxspent, Err: nil}
+	// 	replies[replycnt] = &txlre
+	// 	replycnt++
+	// }
+	return nil, nil //replies, nil
 }
 
 // addrIndexToKey serializes the passed txAddrIndex for storage within the DB.

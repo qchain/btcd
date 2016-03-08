@@ -83,9 +83,6 @@ type mempoolConfig struct {
 	// to.  If unset or set to nil, notifications will not be sent.
 	RelayNtfnChan chan *btcutil.Tx
 
-	// SigCache defines a signature cache to use.
-	SigCache *txscript.SigCache
-
 	// TimeSource defines the timesource to use.
 	TimeSource blockchain.MedianTimeSource
 }
@@ -103,9 +100,8 @@ type txMemPool struct {
 	orphans       map[wire.ShaHash]*btcutil.Tx
 	orphansByPrev map[wire.ShaHash]map[wire.ShaHash]*btcutil.Tx
 	addrindex     map[string]map[wire.ShaHash]struct{} // maps address to txs
-	outpoints     map[wire.OutPoint]*btcutil.Tx
-	pennyTotal    float64 // exponentially decaying total for penny spends.
-	lastPennyUnix int64   // unix time of last ``penny spend''
+	pennyTotal    float64                              // exponentially decaying total for penny spends.
+	lastPennyUnix int64                                // unix time of last ``penny spend''
 }
 
 // Ensure the txMemPool type implements the mining.TxSource interface.
@@ -833,14 +829,15 @@ func (mp *txMemPool) maybeAcceptTransaction(tx *btcutil.Tx, isNew, rateLimit boo
 
 	// Verify crypto signatures for each input and reject the transaction if
 	// any don't verify.
-	err = blockchain.ValidateTransactionScripts(tx, txStore,
-		txscript.StandardVerifyFlags, mp.cfg.SigCache)
-	if err != nil {
-		if cerr, ok := err.(blockchain.RuleError); ok {
-			return nil, chainRuleError(cerr)
-		}
-		return nil, err
-	}
+	// TODO: Verify transaction signatures?
+	// err = blockchain.ValidateTransactionScripts(tx, txStore,
+	// 	txscript.StandardVerifyFlags, mp.cfg.SigCache)
+	// if err != nil {
+	// 	if cerr, ok := err.(blockchain.RuleError); ok {
+	// 		return nil, chainRuleError(cerr)
+	// 	}
+	// 	return nil, err
+	// }
 
 	// Add to transaction pool.
 	mp.addTransaction(txStore, tx, curHeight, txFee)

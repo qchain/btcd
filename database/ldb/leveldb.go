@@ -379,11 +379,6 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int32, rerr error) 
 		log.Warnf("Failed to obtain raw block sha %v", blocksha)
 		return 0, err
 	}
-	txloc, err := block.TxLoc()
-	if err != nil {
-		log.Warnf("Failed to obtain raw block sha %v", blocksha)
-		return 0, err
-	}
 
 	// Insert block into database
 	newheight, err := db.insertBlockData(blocksha, &mblock.Header.PrevBlock,
