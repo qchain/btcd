@@ -24,6 +24,12 @@ const (
 	minTxPayload = 10
 )
 
+// List of transaction types and there numerical equivalent.
+const (
+	UnknownType = -1
+	TxDataType  = 1
+)
+
 // All current and future transactions should adherere to this interface.
 // This is to allow for simple convertions from and to specialized go structs
 // and the more generic MsgTX struct.
@@ -37,8 +43,10 @@ const (
 // The underlying struct will be overwritten with the new data. However the
 // underlying struct should only be changed if error returns nil.
 type TxInterface interface {
-	Serialize() (w io.Writer, err error)
+	Serialize(w io.Writer) error
 	Deserialize(r io.Reader) error
+	SerializeSize() int
+	GetVersion() int32
 }
 
 // MsgTx implements the Message interface and represents a generic tx message.
@@ -51,12 +59,12 @@ type MsgTx struct {
 	LockTime uint32
 }
 
-// AddTxIn adds a transaction input to the message.
+// SetData sets data to the transaction message.
 func (msg *MsgTx) SetData(data []byte) {
 	msg.Data = data
 }
 
-// AddTxOut adds a transaction output to the message.
+//  AppendData appends data to the transaction message.
 func (msg *MsgTx) AppendData(data []byte) {
 	msg.Data = append(msg.Data, data...)
 }
@@ -197,12 +205,32 @@ func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
 	return MaxBlockPayload
 }
 
+func getType(tx TxInterface) int32 {
+	// TODO: Implement this
+	panic("Not implemented yet")
+	return -1
+}
+
 // NewMsgTx returns a new generic tx message that conforms to the Message
 // interface. The lock time is set to zero to indicate the transaction is
 // valid immediately as opposed to some time in future.
 func NewMsgTx() *MsgTx {
 	return &MsgTx{
-		Type: TxVersion,
-		Data: make([]byte, 0),
+		Type:     -1,
+		Data:     make([]byte, 0),
+		LockTime: uint32(0),
+	}
+}
+
+// Surrounds the specific transaction with generic message transaction to
+// be sent over the wire and other non-transaction specific operations.
+func WrapMsgTx(tx TxInterface) *MsgTx {
+	buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
+	_ = tx.Serialize(buf)
+	data := buf.Bytes()
+	return &MsgTx{
+		Type:     getType(tx),
+		Data:     data,
+		LockTime: uint32(0),
 	}
 }
