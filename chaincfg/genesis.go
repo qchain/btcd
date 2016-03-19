@@ -21,13 +21,19 @@ var genesisCoinbaseTx = wire.MsgTx{
 // genesisHash is the hash of the first block in the block chain for the main
 // network (genesis block).
 var genesisHash = wire.ShaHash([wire.HashSize]byte{ // Make go vet happy.
-// TODO: Generate the hash
+	0xe2, 0x7b, 0xef, 0x72, 0x7e, 0x94, 0xf4, 0x81,
+	0x96, 0x72, 0x42, 0xf6, 0xe4, 0x68, 0xc9, 0x42,
+	0xa0, 0x24, 0x8b, 0x4f, 0x53, 0xca, 0xa3, 0x50,
+	0x67, 0x1b, 0xdd, 0xc3, 0x00, 0x00, 0x00, 0x00,
 })
 
 // genesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the main network.
 var genesisMerkleRoot = wire.ShaHash([wire.HashSize]byte{ // Make go vet happy.
-// TODO: Generate the markle root
+	0xd2, 0xd7, 0x74, 0x75, 0xa8, 0xb4, 0x99, 0x9f,
+	0xa7, 0xa6, 0x6e, 0xc3, 0x97, 0xbc, 0x9d, 0x9d,
+	0x87, 0xfc, 0x80, 0x54, 0x96, 0xff, 0xfb, 0xbc,
+	0xd4, 0x24, 0x96, 0x12, 0x01, 0x32, 0x54, 0xe6,
 })
 
 // genesisBlock defines the genesis block of the block chain which serves as the
@@ -37,9 +43,9 @@ var genesisBlock = wire.MsgBlock{
 		Version:    1,
 		PrevBlock:  wire.ShaHash{},           // 0000000000000000000000000000000000000000000000000000000000000000
 		MerkleRoot: genesisMerkleRoot,        // 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
-		Timestamp:  time.Unix(0x56ccd831, 0), // 2016-02-23 22:07:45 +0000 UTC
+		Timestamp:  time.Unix(0x56ed1e66, 0), // 2016-03-19 09:39:50 +0000 UTC
 		Bits:       0x1d00ffff,               // 486604799 [00000000ffff0000000000000000000000000000000000000000000000000000]
-		Nonce:      0x9f36054a,               // 2671117642
+		Nonce:      0x2c5f5254,               // 744444500
 
 	},
 	Transactions: []*wire.MsgTx{&genesisCoinbaseTx},
