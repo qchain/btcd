@@ -308,21 +308,7 @@ func checkBlockSanity(block *btcutil.Block, powLimit *big.Int, timeSource Median
 		return ruleError(ErrBlockTooBig, str)
 	}
 
-	// The first transaction in a block must be a coinbase.
 	transactions := block.Transactions()
-	if !IsCoinBase(transactions[0]) {
-		return ruleError(ErrFirstTxNotCoinbase, "first transaction in "+
-			"block is not a coinbase")
-	}
-
-	// A block must not have more than one coinbase.
-	for i, tx := range transactions[1:] {
-		if IsCoinBase(tx) {
-			str := fmt.Sprintf("block contains second coinbase at "+
-				"index %d", i)
-			return ruleError(ErrMultipleCoinbases, str)
-		}
-	}
 
 	// Do some preliminary checks on each transaction to ensure they are
 	// sane before continuing.

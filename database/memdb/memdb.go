@@ -351,12 +351,12 @@ func (db *MemDb) FetchTxBySha(txHash *wire.ShaHash) ([]*database.TxListReply, er
 		spentBuf := make([]bool, len(txD.spentBuf))
 		copy(spentBuf, txD.spentBuf)
 		reply := database.TxListReply{
-			Sha:     &txHashCopy,
-			Tx:      msgBlock.Transactions[txD.offset],
-			BlkSha:  &blockSha,
-			Height:  txD.blockHeight,
-			TxSpent: spentBuf,
-			Err:     nil,
+			Sha:    &txHashCopy,
+			Tx:     msgBlock.Transactions[txD.offset],
+			BlkSha: &blockSha,
+			Height: txD.blockHeight,
+			TxData: spentBuf,
+			Err:    nil,
 		}
 		replyList[i] = &reply
 	}
@@ -419,7 +419,7 @@ func (db *MemDb) fetchTxByShaList(txShaList []*wire.ShaHash, includeSpent bool) 
 			reply.Tx = msgBlock.Transactions[txD.offset]
 			reply.BlkSha = &blockSha
 			reply.Height = txD.blockHeight
-			reply.TxSpent = spentBuf
+			reply.TxData = spentBuf
 			reply.Err = nil
 		}
 	}

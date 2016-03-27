@@ -93,6 +93,10 @@ func (tx *TxData) GetVersion() int32 {
 	return tx.Version
 }
 
+func (tx *TxData) GetType() int32 {
+	return TxTypeData
+}
+
 func NewTxData() *TxData {
 	tx := &TxData{
 		Version: 1,

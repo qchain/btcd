@@ -431,18 +431,18 @@ func testFetchTxByShaListCommon(tc *testContext, includeSpent bool) bool {
 		// The spend data in the reply from the database must not
 		// indicate any of the transactions that were just inserted are
 		// spent.
-		if txD.TxSpent == nil {
+		if txD.TxData == nil {
 			tc.t.Errorf("%s (%s): block #%d (%s) tx #%d (%s) "+
 				"returned nil spend data", funcName, tc.dbType,
 				tc.blockHeight, tc.blockHash, i, txHash)
 			return false
 		}
 		spentBuf := expectedSpentBuf(tc, i)
-		if !reflect.DeepEqual(txD.TxSpent, spentBuf) {
+		if !reflect.DeepEqual(txD.TxData, spentBuf) {
 			tc.t.Errorf("%s (%s): block #%d (%s) tx #%d (%s) "+
 				"returned unexpected spend data - got %v, "+
 				"want %v", funcName, tc.dbType, tc.blockHeight,
-				tc.blockHash, i, txHash, txD.TxSpent, spentBuf)
+				tc.blockHash, i, txHash, txD.TxData, spentBuf)
 			return false
 		}
 	}

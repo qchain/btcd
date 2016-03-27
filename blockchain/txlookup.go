@@ -151,8 +151,8 @@ func fetchTxStoreMain(db database.Db, txSet map[wire.ShaHash]struct{}, includeSp
 		if txReply.Err == nil {
 			txD.Tx = btcutil.NewTx(txReply.Tx)
 			txD.BlockHeight = txReply.Height
-			txD.Spent = make([]bool, len(txReply.TxSpent))
-			copy(txD.Spent, txReply.TxSpent)
+			txD.Spent = make([]bool, len(txReply.TxData))
+			copy(txD.Spent, txReply.TxData)
 		}
 	}
 

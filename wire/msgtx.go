@@ -7,6 +7,7 @@ package wire
 import (
 	"bytes"
 	"encoding/binary"
+
 	"io"
 )
 
@@ -26,8 +27,8 @@ const (
 
 // List of transaction types and there numerical equivalent.
 const (
-	UnknownType = -1
-	TxDataType  = 1
+	TxTypeUnknown = -1
+	TxTypeData    = 1
 )
 
 // All current and future transactions should adherere to this interface.
@@ -47,6 +48,7 @@ type TxInterface interface {
 	Deserialize(r io.Reader) error
 	SerializeSize() int
 	GetVersion() int32
+	GetType() int32
 }
 
 // MsgTx implements the Message interface and represents a generic tx message.
@@ -55,8 +57,8 @@ type TxInterface interface {
 // with a certain transaction type.
 type MsgTx struct {
 	Type     int32
-	Data     []byte
 	LockTime uint32
+	Data     []byte
 }
 
 // SetData sets data to the transaction message.
@@ -105,7 +107,25 @@ func (msg *MsgTx) MsgDecode(r io.Reader, pver uint32) error {
 	}
 	msg.Type = int32(binary.LittleEndian.Uint32(buf[:]))
 
-	// TODO: Implement this
+	_, err = io.ReadFull(r, buf[:])
+	if err != nil {
+		return err
+	}
+	msg.LockTime = binary.LittleEndian.Uint32(buf[:])
+
+	databuf := make([]byte, 1024)
+	data := make([]byte, 0)
+	for { // Stuck in infinite loop
+		n, err := r.Read(databuf)
+		data = append(data, databuf[:n]...)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+	}
+	msg.Data = data
 
 	return nil
 }
@@ -139,13 +159,13 @@ func (msg *MsgTx) MsgEncode(w io.Writer, pver uint32) error {
 		return err
 	}
 
-	_, err = w.Write(msg.Data)
+	binary.LittleEndian.PutUint32(buf[:], msg.LockTime)
+	_, err = w.Write(buf[:])
 	if err != nil {
 		return err
 	}
 
-	binary.LittleEndian.PutUint32(buf[:], msg.LockTime)
-	_, err = w.Write(buf[:])
+	_, err = w.Write(msg.Data)
 	if err != nil {
 		return err
 	}
@@ -174,23 +194,9 @@ func (msg *MsgTx) Serialize(w io.Writer) error {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction.
 func (msg *MsgTx) SerializeSize() int {
-	// Type 4 bytes + LockTime 4 bytes + Serialized varint size for the
-	// number of transaction inputs and outputs.
-	// n := 8 + VarIntSerializeSize(uint64(len(msg.TxIn))) +
-	// 	VarIntSerializeSize(uint64(len(msg.TxOut)))
+	// Type 4 bytes + LockTime 4 bytes + data
 
-	// for _, txIn := range msg.TxIn {
-	// 	n += txIn.SerializeSize()
-	// }
-
-	// for _, txOut := range msg.TxOut {
-	// 	n += txOut.SerializeSize()
-	// }
-
-	// TODO: Figure out what this is suppose to do and maybe implement it or
-	// remove it.
-
-	return 0
+	return 4 + 4 + len(msg.Data)
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -203,12 +209,6 @@ func (msg *MsgTx) Command() string {
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
 	return MaxBlockPayload
-}
-
-func getType(tx TxInterface) int32 {
-	// TODO: Implement this
-	panic("Not implemented yet")
-	return -1
 }
 
 // NewMsgTx returns a new generic tx message that conforms to the Message
@@ -229,7 +229,7 @@ func WrapMsgTx(tx TxInterface) *MsgTx {
 	_ = tx.Serialize(buf)
 	data := buf.Bytes()
 	return &MsgTx{
-		Type:     getType(tx),
+		Type:     tx.GetType(),
 		Data:     data,
 		LockTime: uint32(0),
 	}

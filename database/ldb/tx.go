@@ -76,23 +76,23 @@ type txAddrIndex struct {
 }
 
 // InsertTx inserts a tx hash and its associated data into the database.
-func (db *LevelDb) InsertTx(txsha *wire.ShaHash, height int32, txoff int, txlen int, spentbuf []byte) (err error) {
+func (db *LevelDb) InsertTx(txsha *wire.ShaHash, height int32, txoff int, txlen int, databuf []byte) (err error) {
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	return db.insertTx(txsha, height, txoff, txlen, spentbuf)
+	return db.insertTx(txsha, height, txoff, txlen, databuf)
 }
 
 // insertTx inserts a tx hash and its associated data into the database.
 // Must be called with db lock held.
-func (db *LevelDb) insertTx(txSha *wire.ShaHash, height int32, txoff int, txlen int, spentbuf []byte) (err error) {
+func (db *LevelDb) insertTx(txSha *wire.ShaHash, height int32, txoff int, txlen int, databuf []byte) (err error) {
 	var txU txUpdateObj
 
 	txU.txSha = txSha
 	txU.blkHeight = height
 	txU.txoff = txoff
 	txU.txlen = txlen
-	txU.spentData = spentbuf
+	txU.spentData = databuf
 
 	db.txUpdateMap[*txSha] = &txU
 
@@ -126,10 +126,10 @@ func (db *LevelDb) getTxData(txsha *wire.ShaHash) (int32, int, int, []byte, erro
 	txOff := binary.LittleEndian.Uint32(buf[8:12])
 	txLen := binary.LittleEndian.Uint32(buf[12:16])
 
-	spentBuf := make([]byte, len(buf)-16)
-	copy(spentBuf, buf[16:])
+	dataBuf := make([]byte, len(buf)-16)
+	copy(dataBuf, buf[16:])
 
-	return int32(blkHeight), int(txOff), int(txLen), spentBuf, nil
+	return int32(blkHeight), int(txOff), int(txLen), dataBuf, nil
 }
 
 func (db *LevelDb) getTxFullySpent(txsha *wire.ShaHash) ([]*spentTx, error) {
@@ -214,14 +214,14 @@ func (db *LevelDb) FetchTxByShaList(txShaList []*wire.ShaHash) []*database.TxLis
 	// // to FetchUnSpentTxByShaList
 	// replies := make([]*database.TxListReply, len(txShaList))
 	// for i, txsha := range txShaList {
-	// 	tx, blockSha, height, txspent, err := db.fetchTxDataBySha(txsha)
-	// 	btxspent := []bool{}
+	// 	tx, blockSha, height, txdata, err := db.fetchTxDataBySha(txsha)
+	// 	btxdata := []bool{}
 	// 	if err == nil {
-	// 		btxspent = make([]bool, len(tx.TxOut), len(tx.TxOut))
+	// 		btxdata = make([]bool, len(tx.TxOut), len(tx.TxOut))
 	// 		for idx := range tx.TxOut {
 	// 			byteidx := idx / 8
 	// 			byteoff := uint(idx % 8)
-	// 			btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
+	// 			btxdata[idx] = (txdata[byteidx] & (byte(1) << byteoff)) != 0
 	// 		}
 	// 	}
 	// 	if err == database.ErrTxShaMissing {
@@ -236,14 +236,14 @@ func (db *LevelDb) FetchTxByShaList(txShaList []*wire.ShaHash) []*database.TxLis
 	// 			tx, blockSha, _, _, err = db.fetchTxDataByLoc(
 	// 				stx.blkHeight, stx.txoff, stx.txlen, []byte{})
 	// 			if err == nil {
-	// 				btxspent = make([]bool, len(tx.TxOut))
-	// 				for i := range btxspent {
-	// 					btxspent[i] = true
+	// 				btxdata = make([]bool, len(tx.TxOut))
+	// 				for i := range btxdata {
+	// 					btxdata[i] = true
 	// 				}
 	// 			}
 	// 		}
 	// 	}
-	// 	txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blockSha, Height: height, TxSpent: btxspent, Err: err}
+	// 	txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blockSha, Height: height, txdata: btxdata, Err: err}
 	// 	replies[i] = &txlre
 	// }
 	return nil // replies
@@ -256,45 +256,45 @@ func (db *LevelDb) FetchUnSpentTxByShaList(txShaList []*wire.ShaHash) []*databas
 	defer db.dbLock.Unlock()
 
 	// TODO: Implement this
-	fmt.Println("Method FetchUnSpentTxByShaList in tx.go is not implemented")
+	fmt.Println("Method FetchUnSpentTxByShaList in ldb/tx.go is not implemented")
 
 	// replies := make([]*database.TxListReply, len(txShaList))
 	// for i, txsha := range txShaList {
-	// 	tx, blockSha, height, txspent, err := db.fetchTxDataBySha(txsha)
-	// 	btxspent := []bool{}
+	// 	tx, blockSha, height, txdata, err := db.fetchTxDataBySha(txsha)
+	// 	btxdata := []bool{}
 	// 	if err == nil {
-	// 		btxspent = make([]bool, len(tx.TxOut), len(tx.TxOut))
+	// 		btxdata = make([]bool, len(tx.TxOut), len(tx.TxOut))
 	// 		for idx := range tx.TxOut {
 	// 			byteidx := idx / 8
 	// 			byteoff := uint(idx % 8)
-	// 			btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
+	// 			btxdata[idx] = (txdata[byteidx] & (byte(1) << byteoff)) != 0
 	// 		}
 	// 	}
-	// 	txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blockSha, Height: height, TxSpent: btxspent, Err: err}
+	// 	txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blockSha, Height: height, txdata: btxdata, Err: err}
 	// 	replies[i] = &txlre
 	// }
 	return nil // replies
 }
 
 // fetchTxDataBySha returns several pieces of data regarding the given sha.
-func (db *LevelDb) fetchTxDataBySha(txsha *wire.ShaHash) (rtx *wire.MsgTx, rblksha *wire.ShaHash, rheight int32, rtxspent []byte, err error) {
+func (db *LevelDb) fetchTxDataBySha(txsha *wire.ShaHash) (rtx *wire.MsgTx, rblksha *wire.ShaHash, rheight int32, rtxdata []byte, err error) {
 	var blkHeight int32
-	var txspent []byte
+	var txdata []byte
 	var txOff, txLen int
 
-	blkHeight, txOff, txLen, txspent, err = db.getTxData(txsha)
+	blkHeight, txOff, txLen, txdata, err = db.getTxData(txsha)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
 			err = database.ErrTxShaMissing
 		}
 		return
 	}
-	return db.fetchTxDataByLoc(blkHeight, txOff, txLen, txspent)
+	return db.fetchTxDataByLoc(blkHeight, txOff, txLen, txdata)
 }
 
 // fetchTxDataByLoc returns several pieces of data regarding the given tx
 // located by the block/offset/size location
-func (db *LevelDb) fetchTxDataByLoc(blkHeight int32, txOff int, txLen int, txspent []byte) (rtx *wire.MsgTx, rblksha *wire.ShaHash, rheight int32, rtxspent []byte, err error) {
+func (db *LevelDb) fetchTxDataByLoc(blkHeight int32, txOff int, txLen int, txdata []byte) (rtx *wire.MsgTx, rblksha *wire.ShaHash, rheight int32, rtxdata []byte, err error) {
 	var blksha *wire.ShaHash
 	var blkbuf []byte
 
@@ -323,7 +323,7 @@ func (db *LevelDb) fetchTxDataByLoc(blkHeight int32, txOff int, txLen int, txspe
 		return
 	}
 
-	return &tx, blksha, blkHeight, txspent, nil
+	return &tx, blksha, blkHeight, txdata, nil
 }
 
 // FetchTxBySha returns some data for the given Tx Sha.
@@ -332,63 +332,61 @@ func (db *LevelDb) FetchTxBySha(txsha *wire.ShaHash) ([]*database.TxListReply, e
 	defer db.dbLock.Unlock()
 
 	// TODO: Implement this
-	fmt.Println("Method FetchTxBySha in Tx.go has not been implemented")
+	fmt.Println("Method FetchTxBySha in ldb/tx.go has not been implemented")
 
-	// replylen := 0
-	// replycnt := 0
+	replylen := 0
+	replycnt := 0
 
-	// tx, blksha, height, txspent, txerr := db.fetchTxDataBySha(txsha)
-	// if txerr == nil {
-	// 	replylen++
-	// } else {
-	// 	if txerr != database.ErrTxShaMissing {
-	// 		return []*database.TxListReply{}, txerr
-	// 	}
-	// }
+	tx, blksha, height, _, txerr := db.fetchTxDataBySha(txsha)
+	if txerr == nil {
+		replylen++
+	} else {
+		if txerr != database.ErrTxShaMissing {
+			return []*database.TxListReply{}, txerr
+		}
+	}
 
-	// sTxList, fSerr := db.getTxFullySpent(txsha)
+	sTxList, fSerr := db.getTxFullySpent(txsha)
 
-	// if fSerr != nil {
-	// 	if fSerr != database.ErrTxShaMissing {
-	// 		return []*database.TxListReply{}, fSerr
-	// 	}
-	// } else {
-	// 	replylen += len(sTxList)
-	// }
+	if fSerr != nil {
+		if fSerr != database.ErrTxShaMissing {
+			return []*database.TxListReply{}, fSerr
+		}
+	} else {
+		replylen += len(sTxList)
+	}
 
-	// replies := make([]*database.TxListReply, replylen)
+	replies := make([]*database.TxListReply, replylen)
 
-	// if fSerr == nil {
-	// 	for _, stx := range sTxList {
-	// 		tx, blksha, _, _, err := db.fetchTxDataByLoc(
-	// 			stx.blkHeight, stx.txoff, stx.txlen, []byte{})
-	// 		if err != nil {
-	// 			if err != leveldb.ErrNotFound {
-	// 				return []*database.TxListReply{}, err
-	// 			}
-	// 			continue
-	// 		}
-	// 		btxspent := make([]bool, len(tx.TxOut), len(tx.TxOut))
-	// 		for i := range btxspent {
-	// 			btxspent[i] = true
-	// 		}
-	// 		txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blksha, Height: stx.blkHeight, TxSpent: btxspent, Err: nil}
-	// 		replies[replycnt] = &txlre
-	// 		replycnt++
-	// 	}
-	// }
-	// if txerr == nil {
-	// 	btxspent := make([]bool, len(tx.TxOut), len(tx.TxOut))
-	// 	for idx := range tx.TxOut {
-	// 		byteidx := idx / 8
-	// 		byteoff := uint(idx % 8)
-	// 		btxspent[idx] = (txspent[byteidx] & (byte(1) << byteoff)) != 0
-	// 	}
-	// 	txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blksha, Height: height, TxSpent: btxspent, Err: nil}
-	// 	replies[replycnt] = &txlre
-	// 	replycnt++
-	// }
-	return nil, nil //replies, nil
+	if fSerr == nil {
+		for _, stx := range sTxList {
+			tx, blksha, _, _, err := db.fetchTxDataByLoc(
+				stx.blkHeight, stx.txoff, stx.txlen, []byte{})
+			if err != nil {
+				if err != leveldb.ErrNotFound {
+					return []*database.TxListReply{}, err
+				}
+				continue
+			}
+			btxdata := make([]bool, len(tx.Data), len(tx.Data))
+
+			txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blksha, Height: stx.blkHeight, TxData: btxdata, Err: nil}
+			replies[replycnt] = &txlre
+			replycnt++
+		}
+	}
+	if txerr == nil {
+		btxdata := make([]bool, len(tx.Data), len(tx.Data))
+		// for idx := range tx.TxOut {
+		// 	byteidx := idx / 8
+		// 	byteoff := uint(idx % 8)
+		// 	btxdata[idx] = (txdata[byteidx] & (byte(1) << byteoff)) != 0
+		// }
+		txlre := database.TxListReply{Sha: txsha, Tx: tx, BlkSha: blksha, Height: height, TxData: btxdata, Err: nil}
+		replies[replycnt] = &txlre
+		replycnt++
+	}
+	return replies, nil
 }
 
 // addrIndexToKey serializes the passed txAddrIndex for storage within the DB.
@@ -515,7 +513,7 @@ func (db *LevelDb) FetchTxsForAddr(addr btcutil.Address, skip int,
 
 		txSha := tx.TxSha()
 		txReply := &database.TxListReply{Sha: &txSha, Tx: tx,
-			BlkSha: blkSha, Height: blkHeight, TxSpent: []bool{}, Err: err}
+			BlkSha: blkSha, Height: blkHeight, TxData: []bool{}, Err: err}
 
 		replies = append(replies, txReply)
 		limit--

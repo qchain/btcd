@@ -107,7 +107,7 @@ endtest:
 		}
 		for _, spend := range txInList {
 			itxe := txneededmap[spend.Hash]
-			if itxe.TxSpent[spend.Index] == true {
+			if itxe.TxData[spend.Index] == true {
 				t.Errorf("txin %v:%v is already spent", spend.Hash, spend.Index)
 			}
 		}
@@ -133,13 +133,13 @@ endtest:
 		}
 		for _, spend := range txInList {
 			itxe := txlookupmap[spend.Hash]
-			if itxe.TxSpent[spend.Index] == false {
-				t.Errorf("txin %v:%v is unspent %v", spend.Hash, spend.Index, itxe.TxSpent)
+			if itxe.TxData[spend.Index] == false {
+				t.Errorf("txin %v:%v is unspent %v", spend.Hash, spend.Index, itxe.TxData)
 			}
 		}
 		for _, txo := range txOutList {
 			itxe := txlookupmap[*txo]
-			for i, spent := range itxe.TxSpent {
+			for i, spent := range itxe.TxData {
 				if spent == true {
 					t.Errorf("freshly inserted tx %v already spent %v", txo, i)
 				}
@@ -170,8 +170,8 @@ endtest:
 		}
 		for _, spend := range txInList {
 			itxe := txlookupmap[spend.Hash]
-			if itxe.TxSpent[spend.Index] == true {
-				t.Errorf("txin %v:%v is unspent %v", spend.Hash, spend.Index, itxe.TxSpent)
+			if itxe.TxData[spend.Index] == true {
+				t.Errorf("txin %v:%v is unspent %v", spend.Hash, spend.Index, itxe.TxData)
 			}
 		}
 		newheight, err = db.InsertBlock(block)
@@ -190,8 +190,8 @@ endtest:
 		}
 		for _, spend := range txInList {
 			itxe := txlookupmap[spend.Hash]
-			if itxe.TxSpent[spend.Index] == false {
-				t.Errorf("txin %v:%v is unspent %v", spend.Hash, spend.Index, itxe.TxSpent)
+			if itxe.TxData[spend.Index] == false {
+				t.Errorf("txin %v:%v is unspent %v", spend.Hash, spend.Index, itxe.TxData)
 			}
 		}
 	}

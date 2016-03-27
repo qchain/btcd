@@ -5,8 +5,10 @@
 package main
 
 import (
+	"bytes"
 	"container/heap"
 	"container/list"
+	"math/rand"
 	"time"
 
 	"github.com/qchain/btcd/blockchain"
@@ -314,12 +316,30 @@ func NewBlockTemplate(policy *mining.Policy, server *server, payToAddress btcuti
 	sortedByFee := policy.BlockPrioritySize == 0
 	priorityQueue := newTxPriorityQueue(len(sourceTxns), sortedByFee)
 
+	// Create one transaction so we have a unique merkle root for each block
+	// and a extra nonce field field we can change if needed. This will be a
+	// simple data transaction for now, but may be a special transaction in
+	// the future.
+	dataTx := &wire.TxData{
+		Version: 1,
+		Type:    "NONCE",
+		Data:    make([]byte, 20),
+	}
+	rand.Read(dataTx.Data)
+	nonceData := bytes.NewBuffer(make([]byte, dataTx.SerializeSize()))
+	dataTx.Serialize(nonceData)
+	nonceTx := &wire.MsgTx{
+		Type:     wire.TxTypeData,
+		LockTime: 0,
+		Data:     nonceData.Bytes(),
+	}
+	coinbaseTx := btcutil.NewTx(nonceTx)
 	// Create a slice to hold the transactions to be included in the
 	// generated block with reserved space.  Also create a transaction
 	// store to house all of the input transactions so multiple lookups
 	// can be avoided.
 	blockTxns := make([]*btcutil.Tx, 0, len(sourceTxns))
-	//blockTxns = append(blockTxns, coinbaseTx)
+	blockTxns = append(blockTxns, coinbaseTx)
 	blockTxStore := make(blockchain.TxStore)
 
 	// dependers is used to track transactions which depend on another
@@ -344,13 +364,8 @@ func NewBlockTemplate(policy *mining.Policy, server *server, payToAddress btcuti
 		len(sourceTxns))
 
 	for _, txDesc := range sourceTxns {
-		// A block can't have more than one coinbase or contain
-		// non-finalized transactions.
+		// A block can't contain non-finalized transactions.
 		tx := txDesc.Tx
-		if blockchain.IsCoinBase(tx) {
-			minrLog.Tracef("Skipping coinbase tx %s", tx.Sha())
-			continue
-		}
 		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,
 			timeSource.AdjustedTime()) {
 
@@ -429,49 +444,49 @@ func NewBlockTemplate(policy *mining.Policy, server *server, payToAddress btcuti
 			continue
 		}
 
-		// Skip free transactions once the block is larger than the
-		// minimum block size.
-		if sortedByFee &&
-			prioItem.feePerKB < int64(policy.TxMinFreeFee) &&
-			blockPlusTxSize >= policy.BlockMinSize {
+		// // Skip free transactions once the block is larger than the
+		// // minimum block size.
+		// if sortedByFee &&
+		// 	prioItem.feePerKB < int64(policy.TxMinFreeFee) &&
+		// 	blockPlusTxSize >= policy.BlockMinSize {
 
-			minrLog.Tracef("Skipping tx %s with feePerKB %.2f "+
-				"< TxMinFreeFee %d and block size %d >= "+
-				"minBlockSize %d", tx.Sha(), prioItem.feePerKB,
-				policy.TxMinFreeFee, blockPlusTxSize,
-				policy.BlockMinSize)
-			logSkippedDeps(tx, deps)
-			continue
-		}
+		// 	minrLog.Tracef("Skipping tx %s with feePerKB %.2f "+
+		// 		"< TxMinFreeFee %d and block size %d >= "+
+		// 		"minBlockSize %d", tx.Sha(), prioItem.feePerKB,
+		// 		policy.TxMinFreeFee, blockPlusTxSize,
+		// 		policy.BlockMinSize)
+		// 	logSkippedDeps(tx, deps)
+		// 	continue
+		// }
 
-		// Prioritize by fee per kilobyte once the block is larger than
-		// the priority size or there are no more high-priority
-		// transactions.
-		if !sortedByFee && (blockPlusTxSize >= policy.BlockPrioritySize ||
-			prioItem.priority <= minHighPriority) {
+		// // Prioritize by fee per kilobyte once the block is larger than
+		// // the priority size or there are no more high-priority
+		// // transactions.
+		// if !sortedByFee && (blockPlusTxSize >= policy.BlockPrioritySize ||
+		// 	prioItem.priority <= minHighPriority) {
 
-			minrLog.Tracef("Switching to sort by fees per "+
-				"kilobyte blockSize %d >= BlockPrioritySize "+
-				"%d || priority %.2f <= minHighPriority %.2f",
-				blockPlusTxSize, policy.BlockPrioritySize,
-				prioItem.priority, minHighPriority)
+		// 	minrLog.Tracef("Switching to sort by fees per "+
+		// 		"kilobyte blockSize %d >= BlockPrioritySize "+
+		// 		"%d || priority %.2f <= minHighPriority %.2f",
+		// 		blockPlusTxSize, policy.BlockPrioritySize,
+		// 		prioItem.priority, minHighPriority)
 
-			sortedByFee = true
-			priorityQueue.SetLessFunc(txPQByFee)
+		// 	sortedByFee = true
+		// 	priorityQueue.SetLessFunc(txPQByFee)
 
-			// Put the transaction back into the priority queue and
-			// skip it so it is re-priortized by fees if it won't
-			// fit into the high-priority section or the priority is
-			// too low.  Otherwise this transaction will be the
-			// final one in the high-priority section, so just fall
-			// though to the code below so it is added now.
-			if blockPlusTxSize > policy.BlockPrioritySize ||
-				prioItem.priority < minHighPriority {
+		// 	// Put the transaction back into the priority queue and
+		// 	// skip it so it is re-priortized by fees if it won't
+		// 	// fit into the high-priority section or the priority is
+		// 	// too low.  Otherwise this transaction will be the
+		// 	// final one in the high-priority section, so just fall
+		// 	// though to the code below so it is added now.
+		// 	if blockPlusTxSize > policy.BlockPrioritySize ||
+		// 		prioItem.priority < minHighPriority {
 
-				heap.Push(priorityQueue, prioItem)
-				continue
-			}
-		}
+		// 		heap.Push(priorityQueue, prioItem)
+		// 		continue
+		// 	}
+		// }
 
 		// NOTE: Remeber to do neccessary checks that any included
 		// transactions are valid.

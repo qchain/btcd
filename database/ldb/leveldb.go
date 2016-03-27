@@ -56,8 +56,8 @@ type LevelDb struct {
 	lastAddrIndexBlkSha wire.ShaHash
 	lastAddrIndexBlkIdx int32
 
-	txUpdateMap      map[wire.ShaHash]*txUpdateObj
-	txSpentUpdateMap map[wire.ShaHash]*spentTxUpdate
+	txUpdateMap     map[wire.ShaHash]*txUpdateObj
+	TxDataUpdateMap map[wire.ShaHash]*spentTxUpdate
 }
 
 var self = database.DriverDB{DbType: "leveldb", CreateDB: CreateDB, OpenDB: OpenDB}
@@ -179,7 +179,7 @@ func openDB(dbpath string, create bool) (pbdb database.Db, err error) {
 			db.lDb = tlDb
 
 			db.txUpdateMap = map[wire.ShaHash]*txUpdateObj{}
-			db.txSpentUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
+			db.TxDataUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
 
 			pbdb = &db
 		}
@@ -440,7 +440,7 @@ func (db *LevelDb) setclearSpentData(txsha *wire.ShaHash, idx uint32, set bool) 
 			spentTxList[len(spentTxList)-1] = nil
 			if len(spentTxList) == 1 {
 				// write entry to delete tx from spent pool
-				db.txSpentUpdateMap[*txsha] = &spentTxUpdate{delete: true}
+				db.TxDataUpdateMap[*txsha] = &spentTxUpdate{delete: true}
 			} else {
 				// This code should never be hit - aakselrod
 				return fmt.Errorf("fully-spent tx %v does not have 1 record: "+
@@ -487,7 +487,7 @@ func (db *LevelDb) setclearSpentData(txsha *wire.ShaHash, idx uint32, set bool) 
 	if fullySpent {
 		var txSu *spentTxUpdate
 		// Look up Tx in fully spent table
-		if txSuOld, ok := db.txSpentUpdateMap[*txsha]; ok {
+		if txSuOld, ok := db.TxDataUpdateMap[*txsha]; ok {
 			txSu = txSuOld
 		} else {
 			var txSuStore spentTxUpdate
@@ -514,7 +514,7 @@ func (db *LevelDb) setclearSpentData(txsha *wire.ShaHash, idx uint32, set bool) 
 		// mark txsha as deleted in the txUpdateMap
 		log.Tracef("***tx %v is fully spent\n", txsha)
 
-		db.txSpentUpdateMap[*txsha] = txSu
+		db.TxDataUpdateMap[*txsha] = txSu
 
 		txUo.delete = true
 		db.txUpdateMap[*txsha] = txUo
@@ -563,7 +563,7 @@ func (db *LevelDb) lBatch() *leveldb.Batch {
 func (db *LevelDb) processBatches() error {
 	var err error
 
-	if len(db.txUpdateMap) != 0 || len(db.txSpentUpdateMap) != 0 || db.lbatch != nil {
+	if len(db.txUpdateMap) != 0 || len(db.TxDataUpdateMap) != 0 || db.lbatch != nil {
 		if db.lbatch == nil {
 			db.lbatch = new(leveldb.Batch)
 		}
@@ -581,7 +581,7 @@ func (db *LevelDb) processBatches() error {
 				db.lbatch.Put(key, txdat)
 			}
 		}
-		for txSha, txSu := range db.txSpentUpdateMap {
+		for txSha, txSu := range db.TxDataUpdateMap {
 			key := shaSpentTxToKey(&txSha)
 			if txSu.delete {
 				//log.Tracef("deleting tx %v", txSha)
@@ -599,7 +599,7 @@ func (db *LevelDb) processBatches() error {
 			return err
 		}
 		db.txUpdateMap = map[wire.ShaHash]*txUpdateObj{}
-		db.txSpentUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
+		db.TxDataUpdateMap = make(map[wire.ShaHash]*spentTxUpdate)
 	}
 
 	return nil
