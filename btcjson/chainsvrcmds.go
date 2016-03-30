@@ -72,6 +72,33 @@ func NewCreateRawTransactionCmd(inputs []TransactionInput, amounts map[string]fl
 	}
 }
 
+
+type CreateDataTransactionCmd struct {
+	FileName 	string
+	Version 	*int
+}
+
+func NewCreateDataTransactionCmd(fileName string, version *int) *CreateDataTransactionCmd {
+
+	return &CreateDataTransactionCmd{
+		FileName:	fileName,
+		Version:	version,
+	}
+}
+
+type DlDataTransactionCmd struct {
+	HexTx string
+	FileName string
+}
+
+// NewDecodeRawTransactionCmd returns a new instance which can be used to issue
+// a decoderawtransaction JSON-RPC command.
+func NewDlDataTransactionCmd(hexTx string, fileName string) *DlDataTransactionCmd {
+	return &DlDataTransactionCmd{
+		HexTx: hexTx,
+		FileName: fileName,
+	}
+}
 // DecodeRawTransactionCmd defines the decoderawtransaction JSON-RPC command.
 type DecodeRawTransactionCmd struct {
 	HexTx string
@@ -712,6 +739,9 @@ func init() {
 
 	MustRegisterCmd("addnode", (*AddNodeCmd)(nil), flags)
 	MustRegisterCmd("createrawtransaction", (*CreateRawTransactionCmd)(nil), flags)
+	MustRegisterCmd("createdatatransaction", (*CreateDataTransactionCmd)(nil), flags)
+	MustRegisterCmd("getfilebyhextx", (*DlDataTransactionCmd)(nil), flags)
+	MustRegisterCmd("getfilebytxid", (*GetRawTransactionCmd)(nil), flags)
 	MustRegisterCmd("decoderawtransaction", (*DecodeRawTransactionCmd)(nil), flags)
 	MustRegisterCmd("decodescript", (*DecodeScriptCmd)(nil), flags)
 	MustRegisterCmd("getaddednodeinfo", (*GetAddedNodeInfoCmd)(nil), flags)
@@ -753,4 +783,5 @@ func init() {
 	MustRegisterCmd("verifychain", (*VerifyChainCmd)(nil), flags)
 	MustRegisterCmd("verifymessage", (*VerifyMessageCmd)(nil), flags)
 	MustRegisterCmd("verifytxoutproof", (*VerifyTxOutProofCmd)(nil), flags)
+	MustRegisterCmd("dldatatransaction", (*DecodeRawTransactionCmd)(nil), flags)
 }
