@@ -86,19 +86,36 @@ func NewCreateDataTransactionCmd(fileName string, version *int) *CreateDataTrans
 	}
 }
 
-type DlDataTransactionCmd struct {
+// GetFileByHextxCmd defines the getfilebyhextx JSON-RPC command.
+type GetFileByHextxCmd struct {
 	HexTx string
 	FileName string
 }
 
-// NewDecodeRawTransactionCmd returns a new instance which can be used to issue
-// a decoderawtransaction JSON-RPC command.
-func NewDlDataTransactionCmd(hexTx string, fileName string) *DlDataTransactionCmd {
-	return &DlDataTransactionCmd{
+// NewGetFileByHextxCmd returns a new instance which can be used to issue
+// a getfilebyhextx JSON-RPC command.
+func NewGetFileByHextxCmd(hexTx string, fileName string) *GetFileByHextxCmd {
+	return &GetFileByHextxCmd{
 		HexTx: hexTx,
 		FileName: fileName,
 	}
 }
+
+// GetFileByTxidCmd defines the getfilebytxid JSON-RPC command.
+type GetFileByTxidCmd struct {
+	Txid string
+	FileName string
+}
+
+// NewGetFileByHextxCmd returns a new instance which can be used to issue
+// a getfilebytxid JSON-RPC command.
+func NewGetFileByTxidCmd(txid string, fileName string) *GetFileByTxidCmd {
+	return &GetFileByTxidCmd{
+		Txid: txid,
+		FileName: fileName,
+	}
+}
+
 // DecodeRawTransactionCmd defines the decoderawtransaction JSON-RPC command.
 type DecodeRawTransactionCmd struct {
 	HexTx string
@@ -740,8 +757,8 @@ func init() {
 	MustRegisterCmd("addnode", (*AddNodeCmd)(nil), flags)
 	MustRegisterCmd("createrawtransaction", (*CreateRawTransactionCmd)(nil), flags)
 	MustRegisterCmd("createdatatransaction", (*CreateDataTransactionCmd)(nil), flags)
-	MustRegisterCmd("getfilebyhextx", (*DlDataTransactionCmd)(nil), flags)
-	MustRegisterCmd("getfilebytxid", (*GetRawTransactionCmd)(nil), flags)
+	MustRegisterCmd("getfilebyhextx", (*GetFileByHextxCmd)(nil), flags)
+	MustRegisterCmd("getfilebytxid", (*GetFileByTxidCmd)(nil), flags)
 	MustRegisterCmd("decoderawtransaction", (*DecodeRawTransactionCmd)(nil), flags)
 	MustRegisterCmd("decodescript", (*DecodeScriptCmd)(nil), flags)
 	MustRegisterCmd("getaddednodeinfo", (*GetAddedNodeInfoCmd)(nil), flags)
@@ -783,5 +800,4 @@ func init() {
 	MustRegisterCmd("verifychain", (*VerifyChainCmd)(nil), flags)
 	MustRegisterCmd("verifymessage", (*VerifyMessageCmd)(nil), flags)
 	MustRegisterCmd("verifytxoutproof", (*VerifyTxOutProofCmd)(nil), flags)
-	MustRegisterCmd("dldatatransaction", (*DecodeRawTransactionCmd)(nil), flags)
 }

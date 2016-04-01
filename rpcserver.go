@@ -124,8 +124,8 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"addnode":               handleAddNode,
 	"createrawtransaction":  handleCreateRawTransaction,
 	"createdatatransaction": handleCreateDataTransaction,
-	"getfilebyhextx":		 handleGetFileByHexTx,
-	"getfilebytxid":		 handleGetFileByTxId,
+	"getfilebyhextx":        handleGetFileByHexTx,
+	"getfilebytxid":         handleGetFileByTxId,
 	"debuglevel":            handleDebugLevel,
 	"decoderawtransaction":  handleDecodeRawTransaction,
 	"generate":              handleGenerate,
@@ -522,26 +522,31 @@ func handleCreateRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan 
 // CreateDataTransaction takes a filepath and inserts it in a tx.
 func handleCreateDataTransaction(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
 	c := cmd.(*btcjson.CreateDataTransactionCmd)
-	//read bytes from filename
+	// Read bytes from file
 	byteFile, err := ioutil.ReadFile(c.FileName)
 	if err != nil {
 		return nil, err
 	}
-	//create new tx
+	// Create new tx
 	mtx := wire.NewMsgTx()
-	//appending bytefile to data field.
+	// Appending bytefile to data field.
 	mtx.AppendData(byteFile)
-
+	// encode tx to hex
 	mtxHex, err := messageToHex(mtx)
 	if err != nil {
 		return nil, err
 	}
+	//Put mex into correct interface and send.
+	srtx := btcjson.NewSendRawTransactionCmd(mtxHex, nil)
+	txid, err := handleSendRawTransaction(s, srtx, closeChan)
 
-	return mtxHex, nil
+	return txid, nil
 }
 
+// handleGetFileByHexTx handles GetFileByHexTx commands.
+// Retrieves file from the transaction hex and saves it to disk.
 func handleGetFileByHexTx(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.DlDataTransactionCmd)
+	c := cmd.(*btcjson.GetFileByHextxCmd)
 
 	// Deserialize the transaction.
 	hexStr := c.HexTx
@@ -560,49 +565,53 @@ func handleGetFileByHexTx(s *rpcServer, cmd interface{}, closeChan <-chan struct
 			Message: "TX decode failed: " + err.Error(),
 		}
 	}
-
+	// Write to file
 	err = ioutil.WriteFile(c.FileName, mtx.Data, 0644)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create and return the result.
-	txReply := btcjson.TxRawDecodeResult{
-		Txid:     mtx.TxSha().String(),
-		Locktime: mtx.LockTime,
-	}
-	return txReply, nil
+	return mtx.TxSha().String(), nil
 
 }
 
-//
+// handleGetFileByTxId handles GetFileByTxid
+// Retrieves file from transaction id and saves it to disk.
 func handleGetFileByTxId(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.GetRawTransactionCmd)
+	c := cmd.(*btcjson.GetFileByTxidCmd)
 
 	// Convert the provided transaction hash hex to a ShaHash.
 	txHash, err := wire.NewShaHashFromStr(c.Txid)
 	if err != nil {
 		return nil, rpcDecodeHexError(c.Txid)
 	}
-	
+
+	// Check to see if tx is in pool, if not check db.
 	var mtx *wire.MsgTx
 	tx, err := s.server.txMemPool.FetchTransaction(txHash)
 	if err != nil {
-		return nil, err
+		txList, err := s.server.db.FetchTxBySha(txHash)
+		fmt.Printf("Handle raw tx{ txList=%v, err=%v }\n", txList, err)
+		if err != nil || len(txList) == 0 {
+			return nil, &btcjson.RPCError{
+				Code:    btcjson.ErrRPCNoTxInfo,
+				Message: "No information available about transaction",
+			}
+		}
+
+		lastTx := txList[len(txList)-1]
+		mtx = lastTx.Tx
+	} else {
+		mtx = tx.MsgTx()
 	}
 
-	mtx = tx.MsgTx()
-	err = ioutil.WriteFile("/tmp/txidtest.md", mtx.Data, 0644)
+	err = ioutil.WriteFile(c.FileName, mtx.Data, 0644)
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, &btcjson.RPCError{
-				Code:    btcjson.ErrRPCNoTxInfo,
-				Message: "No information available about transaction",
-			}
+	return c.FileName, nil
 }
-
 
 // handleDebugLevel handles debuglevel commands.
 func handleDebugLevel(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
