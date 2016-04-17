@@ -286,20 +286,20 @@ func (mp *txMemPool) HaveTransaction(hash *wire.ShaHash) bool {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *txMemPool) removeTransaction(tx *btcutil.Tx, removeRedeemers bool) {
-	//txHash := tx.Sha()
+	txHash := tx.Sha()
 	if removeRedeemers {
 		// TODO: Remove any transactions in the mempool which rely on this one.
 	}
 
-	// // Remove the transaction and mark the referenced outpoints as unspent
-	// // by the pool.
-	// if txDesc, exists := mp.pool[*txHash]; exists {
-	// 	if mp.cfg.EnableAddrIndex {
-	// 		mp.removeTransactionFromAddrIndex(tx)
-	// 	}
-	// 	delete(mp.pool, *txHash)
-	// 	atomic.StoreInt64(&mp.lastUpdated, time.Now().Unix())
-	// }
+	// Remove the transaction and mark the referenced outpoints as unspent
+	// by the pool.
+	if _, exists := mp.pool[*txHash]; exists {
+		if mp.cfg.EnableAddrIndex {
+			mp.removeTransactionFromAddrIndex(tx)
+		}
+		delete(mp.pool, *txHash)
+		atomic.StoreInt64(&mp.lastUpdated, time.Now().Unix())
+	}
 
 }
 
