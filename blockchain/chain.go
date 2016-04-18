@@ -15,7 +15,6 @@ import (
 
 	"github.com/qchain/btcd/chaincfg"
 	"github.com/qchain/btcd/database"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 )
@@ -160,7 +159,6 @@ type BlockChain struct {
 	noCheckpoints       bool
 	nextCheckpoint      *chaincfg.Checkpoint
 	checkpointBlock     *btcutil.Block
-	sigCache            *txscript.SigCache
 }
 
 // DisableVerify provides a mechanism to disable transaction script validation
@@ -1069,7 +1067,7 @@ func (b *BlockChain) IsCurrent(timeSource MedianTimeSource) bool {
 // Notification and NotificationType for details on the types and contents of
 // notifications.  The provided callback can be nil if the caller is not
 // interested in receiving notifications.
-func New(db database.Db, params *chaincfg.Params, c NotificationCallback, sigCache *txscript.SigCache) *BlockChain {
+func New(db database.Db, params *chaincfg.Params, c NotificationCallback) *BlockChain {
 	// Generate a checkpoint by height map from the provided checkpoints.
 	var checkpointsByHeight map[int32]*chaincfg.Checkpoint
 	if len(params.Checkpoints) > 0 {
@@ -1082,7 +1080,6 @@ func New(db database.Db, params *chaincfg.Params, c NotificationCallback, sigCac
 
 	b := BlockChain{
 		db:                  db,
-		sigCache:            sigCache,
 		chainParams:         params,
 		checkpointsByHeight: checkpointsByHeight,
 		notifications:       c,

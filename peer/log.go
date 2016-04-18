@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qchain/btcd/txscript"
+	"github.com/qchain/btcd/blockchain"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btclog"
 )
@@ -96,7 +96,7 @@ func formatLockTime(lockTime uint32) string {
 	// which the transaction is finalized or a timestamp depending on if the
 	// value is before the lockTimeThreshold.  When it is under the
 	// threshold it is a block height.
-	if lockTime < txscript.LockTimeThreshold {
+	if lockTime < blockchain.LockTimeThreshold {
 		return fmt.Sprintf("height %d", lockTime)
 	}
 
@@ -193,10 +193,9 @@ func messageSummary(msg wire.Message) string {
 	case *wire.MsgMemPool:
 		// No summary.
 
-	case *wire.MsgTx:
-		return fmt.Sprintf("hash %s, %d inputs, %d outputs, lock %s",
-			msg.TxSha(), len(msg.TxIn), len(msg.TxOut),
-			formatLockTime(msg.LockTime))
+	case *wire.MsgTx: // TODO: Rewrite this to fit new Tx format
+		return fmt.Sprintf("hash %s, lock %s",
+			msg.TxSha(), formatLockTime(msg.LockTime))
 
 	case *wire.MsgBlock:
 		header := &msg.Header

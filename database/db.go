@@ -163,12 +163,12 @@ type DriverDB struct {
 // TxListReply is used to return individual transaction information when
 // data about multiple transactions is requested in a single call.
 type TxListReply struct {
-	Sha     *wire.ShaHash
-	Tx      *wire.MsgTx
-	BlkSha  *wire.ShaHash
-	Height  int32
-	TxSpent []bool
-	Err     error
+	Sha    *wire.ShaHash
+	Tx     *wire.MsgTx
+	BlkSha *wire.ShaHash
+	Height int32
+	TxData []bool
+	Err    error
 }
 
 // AddrIndexKeySize is the number of bytes used by keys into the BlockAddrIndex.

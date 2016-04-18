@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/qchain/btcd/chaincfg"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 )
@@ -188,15 +187,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*btcutil.Block, error) {
 // isNonstandardTransaction determines whether a transaction contains any
 // scripts which are not one of the standard types.
 func isNonstandardTransaction(tx *btcutil.Tx) bool {
-	// TODO(davec): Should there be checks for the input signature scripts?
-
-	// Check all of the output public key scripts for non-standard scripts.
-	for _, txOut := range tx.MsgTx().TxOut {
-		scriptClass := txscript.GetScriptClass(txOut.PkScript)
-		if scriptClass == txscript.NonStandardTy {
-			return true
-		}
-	}
+	fmt.Println("Method isNonstandardTransaction in checkpoints.go is not implemented")
 	return false
 }
 

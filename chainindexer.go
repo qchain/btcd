@@ -11,12 +11,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/qchain/btcd/blockchain"
 	"github.com/qchain/btcd/database"
-	"github.com/qchain/btcd/txscript"
-	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
-	"github.com/qchain/golangcrypto/ripemd160"
 )
 
 type indexState int
@@ -414,79 +410,10 @@ out:
 	wg.Done()
 }
 
-// indexScriptPubKey indexes all data pushes greater than 8 bytes within the
-// passed SPK. Our "address" index is actually a hash160 index, where in the
-// ideal case the data push is either the hash160 of a publicKey (P2PKH) or
-// a Script (P2SH).
-func indexScriptPubKey(addrIndex database.BlockAddrIndex, scriptPubKey []byte,
-	locInBlock *wire.TxLoc) error {
-	dataPushes, err := txscript.PushedData(scriptPubKey)
-	if err != nil {
-		adxrLog.Tracef("Couldn't get pushes: %v", err)
-		return err
-	}
-
-	for _, data := range dataPushes {
-		// Only index pushes greater than 8 bytes.
-		if len(data) < 8 {
-			continue
-		}
-
-		var indexKey [ripemd160.Size]byte
-		// A perfect little hash160.
-		if len(data) <= 20 {
-			copy(indexKey[:], data)
-			// Otherwise, could be a payToPubKey or an OP_RETURN, so we'll
-			// make a hash160 out of it.
-		} else {
-			copy(indexKey[:], btcutil.Hash160(data))
-		}
-
-		addrIndex[indexKey] = append(addrIndex[indexKey], locInBlock)
-	}
-	return nil
-}
-
 // indexBlockAddrs returns a populated index of the all the transactions in the
 // passed block based on the addresses involved in each transaction.
 func (a *addrIndexer) indexBlockAddrs(blk *btcutil.Block) (database.BlockAddrIndex, error) {
-	addrIndex := make(database.BlockAddrIndex)
-	txLocs, err := blk.TxLoc()
-	if err != nil {
-		return nil, err
-	}
-
-	for txIdx, tx := range blk.Transactions() {
-		// Tx's offset and length in the block.
-		locInBlock := &txLocs[txIdx]
-
-		// Coinbases don't have any inputs.
-		if !blockchain.IsCoinBase(tx) {
-			// Index the SPK's of each input's previous outpoint
-			// transaction.
-			for _, txIn := range tx.MsgTx().TxIn {
-				// Lookup and fetch the referenced output's tx.
-				prevOut := txIn.PreviousOutPoint
-				txList, err := a.server.db.FetchTxBySha(&prevOut.Hash)
-				if len(txList) == 0 {
-					return nil, fmt.Errorf("transaction %v not found",
-						prevOut.Hash)
-				}
-				if err != nil {
-					adxrLog.Errorf("Error fetching tx %v: %v",
-						prevOut.Hash, err)
-					return nil, err
-				}
-				prevOutTx := txList[len(txList)-1]
-				inputOutPoint := prevOutTx.Tx.TxOut[prevOut.Index]
-
-				indexScriptPubKey(addrIndex, inputOutPoint.PkScript, locInBlock)
-			}
-		}
-
-		for _, txOut := range tx.MsgTx().TxOut {
-			indexScriptPubKey(addrIndex, txOut.PkScript, locInBlock)
-		}
-	}
-	return addrIndex, nil
+	// TODO: Look into if this is needed
+	fmt.Println("Method indexBlockAddrs in chainindexer.go is not implemented")
+	return nil, nil
 }

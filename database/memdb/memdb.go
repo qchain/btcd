@@ -7,7 +7,6 @@ package memdb
 import (
 	"errors"
 	"fmt"
-	"math"
 	"sync"
 
 	"github.com/qchain/btcd/database"
@@ -44,20 +43,6 @@ type tTxInsertData struct {
 func newShaHashFromStr(hexStr string) *wire.ShaHash {
 	sha, _ := wire.NewShaHashFromStr(hexStr)
 	return sha
-}
-
-// isCoinbaseInput returns whether or not the passed transaction input is a
-// coinbase input.  A coinbase is a special transaction created by miners that
-// has no inputs.  This is represented in the block chain by a transaction with
-// a single input that has a previous output transaction index set to the
-// maximum value along with a zero hash.
-func isCoinbaseInput(txIn *wire.TxIn) bool {
-	prevOut := &txIn.PreviousOutPoint
-	if prevOut.Index == math.MaxUint32 && prevOut.Hash.IsEqual(&zeroHash) {
-		return true
-	}
-
-	return false
 }
 
 // isFullySpent returns whether or not a transaction represented by the passed
@@ -99,37 +84,15 @@ type MemDb struct {
 
 // removeTx removes the passed transaction including unspending it.
 func (db *MemDb) removeTx(msgTx *wire.MsgTx, txHash *wire.ShaHash) {
-	// Undo all of the spends for the transaction.
-	for _, txIn := range msgTx.TxIn {
-		if isCoinbaseInput(txIn) {
-			continue
-		}
 
-		prevOut := &txIn.PreviousOutPoint
-		originTxns, exists := db.txns[prevOut.Hash]
-		if !exists {
-			log.Warnf("Unable to find input transaction %s to "+
-				"unspend %s index %d", prevOut.Hash, txHash,
-				prevOut.Index)
-			continue
-		}
-
-		originTxD := originTxns[len(originTxns)-1]
-		originTxD.spentBuf[prevOut.Index] = false
-	}
-
-	// Remove the info for the most recent version of the transaction.
-	txns := db.txns[*txHash]
-	lastIndex := len(txns) - 1
-	txns[lastIndex] = nil
-	txns = txns[:lastIndex]
-	db.txns[*txHash] = txns
+	// TODO: Implement this
+	fmt.Println("Method removeTx in database/memdb.go is not implemeneted")
 
 	// Remove the info entry from the map altogether if there not any older
 	// versions of the transaction.
-	if len(txns) == 0 {
-		delete(db.txns, *txHash)
-	}
+	//if len(txns) == 0 {
+	//	delete(db.txns, *txHash)
+	//}
 
 }
 
@@ -388,12 +351,12 @@ func (db *MemDb) FetchTxBySha(txHash *wire.ShaHash) ([]*database.TxListReply, er
 		spentBuf := make([]bool, len(txD.spentBuf))
 		copy(spentBuf, txD.spentBuf)
 		reply := database.TxListReply{
-			Sha:     &txHashCopy,
-			Tx:      msgBlock.Transactions[txD.offset],
-			BlkSha:  &blockSha,
-			Height:  txD.blockHeight,
-			TxSpent: spentBuf,
-			Err:     nil,
+			Sha:    &txHashCopy,
+			Tx:     msgBlock.Transactions[txD.offset],
+			BlkSha: &blockSha,
+			Height: txD.blockHeight,
+			TxData: spentBuf,
+			Err:    nil,
 		}
 		replyList[i] = &reply
 	}
@@ -456,7 +419,7 @@ func (db *MemDb) fetchTxByShaList(txShaList []*wire.ShaHash, includeSpent bool) 
 			reply.Tx = msgBlock.Transactions[txD.offset]
 			reply.BlkSha = &blockSha
 			reply.Height = txD.blockHeight
-			reply.TxSpent = spentBuf
+			reply.TxData = spentBuf
 			reply.Err = nil
 		}
 	}
@@ -548,106 +511,92 @@ func (db *MemDb) InsertBlock(block *btcutil.Block) (int32, error) {
 	// for error conditions up front means the code below doesn't have to
 	// deal with rollback on errors.
 	newHeight := int32(len(db.blocks))
-	for i, tx := range transactions {
-		// Two old blocks contain duplicate transactions due to being
-		// mined by faulty miners and accepted by the origin Satoshi
-		// client.  Rules have since been added to the ensure this
-		// problem can no longer happen, but the two duplicate
-		// transactions which were originally accepted are forever in
-		// the block chain history and must be dealth with specially.
-		// http://blockexplorer.com/b/91842
-		// http://blockexplorer.com/b/91880
-		if newHeight == 91842 && tx.Sha().IsEqual(dupTxHash91842) {
-			continue
-		}
+	// for i, tx := range transactions { // TODO: Implement this
 
-		if newHeight == 91880 && tx.Sha().IsEqual(dupTxHash91880) {
-			continue
-		}
+	// for _, txIn := range tx.MsgTx().TxIn {
+	// 	if isCoinbaseInput(txIn) {
+	// 		continue
+	// 	}
 
-		for _, txIn := range tx.MsgTx().TxIn {
-			if isCoinbaseInput(txIn) {
-				continue
-			}
+	// 	// It is acceptable for a transaction input to reference
+	// 	// the output of another transaction in this block only
+	// 	// if the referenced transaction comes before the
+	// 	// current one in this block.
+	// 	prevOut := &txIn.PreviousOutPoint
+	// 	if inFlightIndex, ok := txInFlight[prevOut.Hash]; ok {
+	// 		if i <= inFlightIndex {
+	// 			log.Warnf("InsertBlock: requested hash "+
+	// 				" of %s does not exist in-flight",
+	// 				tx.Sha())
+	// 			return 0, database.ErrTxShaMissing
+	// 		}
+	// 	} else {
+	// 		originTxns, exists := db.txns[prevOut.Hash]
+	// 		if !exists {
+	// 			log.Warnf("InsertBlock: requested hash "+
+	// 				"of %s by %s does not exist",
+	// 				prevOut.Hash, tx.Sha())
+	// 			return 0, database.ErrTxShaMissing
+	// 		}
+	// 		originTxD := originTxns[len(originTxns)-1]
+	// 		if prevOut.Index > uint32(len(originTxD.spentBuf)) {
+	// 			log.Warnf("InsertBlock: requested hash "+
+	// 				"of %s with index %d does not "+
+	// 				"exist", tx.Sha(), prevOut.Index)
+	// 			return 0, database.ErrTxShaMissing
+	// 		}
+	// 	}
+	// }
 
-			// It is acceptable for a transaction input to reference
-			// the output of another transaction in this block only
-			// if the referenced transaction comes before the
-			// current one in this block.
-			prevOut := &txIn.PreviousOutPoint
-			if inFlightIndex, ok := txInFlight[prevOut.Hash]; ok {
-				if i <= inFlightIndex {
-					log.Warnf("InsertBlock: requested hash "+
-						" of %s does not exist in-flight",
-						tx.Sha())
-					return 0, database.ErrTxShaMissing
-				}
-			} else {
-				originTxns, exists := db.txns[prevOut.Hash]
-				if !exists {
-					log.Warnf("InsertBlock: requested hash "+
-						"of %s by %s does not exist",
-						prevOut.Hash, tx.Sha())
-					return 0, database.ErrTxShaMissing
-				}
-				originTxD := originTxns[len(originTxns)-1]
-				if prevOut.Index > uint32(len(originTxD.spentBuf)) {
-					log.Warnf("InsertBlock: requested hash "+
-						"of %s with index %d does not "+
-						"exist", tx.Sha(), prevOut.Index)
-					return 0, database.ErrTxShaMissing
-				}
-			}
-		}
+	// // Prevent duplicate transactions in the same block.
+	// if inFlightIndex, exists := txInFlight[*tx.Sha()]; exists &&
+	// 	inFlightIndex < i {
+	// 	log.Warnf("Block contains duplicate transaction %s",
+	// 		tx.Sha())
+	// 	return 0, database.ErrDuplicateSha
+	// }
 
-		// Prevent duplicate transactions in the same block.
-		if inFlightIndex, exists := txInFlight[*tx.Sha()]; exists &&
-			inFlightIndex < i {
-			log.Warnf("Block contains duplicate transaction %s",
-				tx.Sha())
-			return 0, database.ErrDuplicateSha
-		}
-
-		// Prevent duplicate transactions unless the old one is fully
-		// spent.
-		if txns, exists := db.txns[*tx.Sha()]; exists {
-			txD := txns[len(txns)-1]
-			if !isFullySpent(txD) {
-				log.Warnf("Attempt to insert duplicate "+
-					"transaction %s", tx.Sha())
-				return 0, database.ErrDuplicateSha
-			}
-		}
-	}
+	// // Prevent duplicate transactions unless the old one is fully
+	// // spent.
+	// if txns, exists := db.txns[*tx.Sha()]; exists {
+	// 	txD := txns[len(txns)-1]
+	// 	if !isFullySpent(txD) {
+	// 		log.Warnf("Attempt to insert duplicate "+
+	// 			"transaction %s", tx.Sha())
+	// 		return 0, database.ErrDuplicateSha
+	// 	}
+	// }
+	// }
 
 	db.blocks = append(db.blocks, msgBlock)
 	db.blocksBySha[*block.Sha()] = newHeight
 
 	// Insert information about eacj transaction and spend all of the
 	// outputs referenced by the inputs to the transactions.
-	for i, tx := range block.Transactions() {
-		// Insert the transaction data.
-		txD := tTxInsertData{
-			blockHeight: newHeight,
-			offset:      i,
-			spentBuf:    make([]bool, len(tx.MsgTx().TxOut)),
-		}
-		db.txns[*tx.Sha()] = append(db.txns[*tx.Sha()], &txD)
+	// TODO: Implement this
+	// for i, tx := range block.Transactions() {
+	// 	// Insert the transaction data.
+	// 	txD := tTxInsertData{
+	// 		blockHeight: newHeight,
+	// 		offset:      i,
+	// 		spentBuf:    make([]bool, len(tx.MsgTx().TxOut)),
+	// 	}
+	// 	db.txns[*tx.Sha()] = append(db.txns[*tx.Sha()], &txD)
 
-		// Spend all of the inputs.
-		for _, txIn := range tx.MsgTx().TxIn {
-			// Coinbase transaction has no inputs.
-			if isCoinbaseInput(txIn) {
-				continue
-			}
+	// 	// Spend all of the inputs.
+	// 	for _, txIn := range tx.MsgTx().TxIn {
+	// 		// Coinbase transaction has no inputs.
+	// 		if isCoinbaseInput(txIn) {
+	// 			continue
+	// 		}
 
-			// Already checked for existing and valid ranges above.
-			prevOut := &txIn.PreviousOutPoint
-			originTxns := db.txns[prevOut.Hash]
-			originTxD := originTxns[len(originTxns)-1]
-			originTxD.spentBuf[prevOut.Index] = true
-		}
-	}
+	// 		// Already checked for existing and valid ranges above.
+	// 		prevOut := &txIn.PreviousOutPoint
+	// 		originTxns := db.txns[prevOut.Hash]
+	// 		originTxD := originTxns[len(originTxns)-1]
+	// 		originTxD.spentBuf[prevOut.Index] = true
+	// 	}
+	// }
 
 	return newHeight, nil
 }

@@ -32,31 +32,33 @@ type TxStore map[wire.ShaHash]*TxData
 // spend information for all the transactions in the passed block.  Only
 // transactions in the passed map are updated.
 func connectTransactions(txStore TxStore, block *btcutil.Block) error {
-	// Loop through all of the transactions in the block to see if any of
-	// them are ones we need to update and spend based on the results map.
-	for _, tx := range block.Transactions() {
-		// Update the transaction store with the transaction information
-		// if it's one of the requested transactions.
-		msgTx := tx.MsgTx()
-		if txD, exists := txStore[*tx.Sha()]; exists {
-			txD.Tx = tx
-			txD.BlockHeight = block.Height()
-			txD.Spent = make([]bool, len(msgTx.TxOut))
-			txD.Err = nil
-		}
+	fmt.Println("Method connectTransactions om txLookup.go is not implemented")
 
-		// Spend the origin transaction output.
-		for _, txIn := range msgTx.TxIn {
-			originHash := &txIn.PreviousOutPoint.Hash
-			originIndex := txIn.PreviousOutPoint.Index
-			if originTx, exists := txStore[*originHash]; exists {
-				if originIndex > uint32(len(originTx.Spent)) {
-					continue
-				}
-				originTx.Spent[originIndex] = true
-			}
-		}
-	}
+	// // Loop through all of the transactions in the block to see if any of
+	// // them are ones we need to update and spend based on the results map.
+	// for _, tx := range block.Transactions() {
+	// 	// Update the transaction store with the transaction information
+	// 	// if it's one of the requested transactions.
+	// 	msgTx := tx.MsgTx()
+	// 	if txD, exists := txStore[*tx.Sha()]; exists {
+	// 		txD.Tx = tx
+	// 		txD.BlockHeight = block.Height()
+	// 		txD.Spent = make([]bool, len(msgTx.TxOut))
+	// 		txD.Err = nil
+	// 	}
+
+	// 	// Spend the origin transaction output.
+	// 	for _, txIn := range msgTx.TxIn {
+	// 		originHash := &txIn.PreviousOutPoint.Hash
+	// 		originIndex := txIn.PreviousOutPoint.Index
+	// 		if originTx, exists := txStore[*originHash]; exists {
+	// 			if originIndex > uint32(len(originTx.Spent)) {
+	// 				continue
+	// 			}
+	// 			originTx.Spent[originIndex] = true
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
@@ -65,34 +67,36 @@ func connectTransactions(txStore TxStore, block *btcutil.Block) error {
 // spend information for all transactions in the passed block.  Only
 // transactions in the passed map are updated.
 func disconnectTransactions(txStore TxStore, block *btcutil.Block) error {
-	// Loop through all of the transactions in the block to see if any of
-	// them are ones that need to be undone based on the transaction store.
-	for _, tx := range block.Transactions() {
-		// Clear this transaction from the transaction store if needed.
-		// Only clear it rather than deleting it because the transaction
-		// connect code relies on its presence to decide whether or not
-		// to update the store and any transactions which exist on both
-		// sides of a fork would otherwise not be updated.
-		if txD, exists := txStore[*tx.Sha()]; exists {
-			txD.Tx = nil
-			txD.BlockHeight = 0
-			txD.Spent = nil
-			txD.Err = database.ErrTxShaMissing
-		}
+	fmt.Println("Method disconnectTransactions in txLookup.go is no implemented")
 
-		// Unspend the origin transaction output.
-		for _, txIn := range tx.MsgTx().TxIn {
-			originHash := &txIn.PreviousOutPoint.Hash
-			originIndex := txIn.PreviousOutPoint.Index
-			originTx, exists := txStore[*originHash]
-			if exists && originTx.Tx != nil && originTx.Err == nil {
-				if originIndex > uint32(len(originTx.Spent)) {
-					continue
-				}
-				originTx.Spent[originIndex] = false
-			}
-		}
-	}
+	// 	// Loop through all of the transactions in the block to see if any of
+	// 	// them are ones that need to be undone based on the transaction store.
+	// 	for _, tx := range block.Transactions() {
+	// 		// Clear this transaction from the transaction store if needed.
+	// 		// Only clear it rather than deleting it because the transaction
+	// 		// connect code relies on its presence to decide whether or not
+	// 		// to update the store and any transactions which exist on both
+	// 		// sides of a fork would otherwise not be updated.
+	// 		if txD, exists := txStore[*tx.Sha()]; exists {
+	// 			txD.Tx = nil
+	// 			txD.BlockHeight = 0
+	// 			txD.Spent = nil
+	// 			txD.Err = database.ErrTxShaMissing
+	// 		}
+
+	// 		// Unspend the origin transaction output.
+	// 		for _, txIn := range tx.MsgTx().TxIn {
+	// 			originHash := &txIn.PreviousOutPoint.Hash
+	// 			originIndex := txIn.PreviousOutPoint.Index
+	// 			originTx, exists := txStore[*originHash]
+	// 			if exists && originTx.Tx != nil && originTx.Err == nil {
+	// 				if originIndex > uint32(len(originTx.Spent)) {
+	// 					continue
+	// 				}
+	// 				originTx.Spent[originIndex] = false
+	// 			}
+	// 		}
+	// 	}
 
 	return nil
 }
@@ -147,8 +151,8 @@ func fetchTxStoreMain(db database.Db, txSet map[wire.ShaHash]struct{}, includeSp
 		if txReply.Err == nil {
 			txD.Tx = btcutil.NewTx(txReply.Tx)
 			txD.BlockHeight = txReply.Height
-			txD.Spent = make([]bool, len(txReply.TxSpent))
-			copy(txD.Spent, txReply.TxSpent)
+			txD.Spent = make([]bool, len(txReply.TxData))
+			copy(txD.Spent, txReply.TxData)
 		}
 	}
 
@@ -235,65 +239,9 @@ func (b *BlockChain) fetchTxStore(node *blockNode, txSet map[wire.ShaHash]struct
 // transactions in the given block from its point of view.  See fetchTxList
 // for more details on what the point of view entails.
 func (b *BlockChain) fetchInputTransactions(node *blockNode, block *btcutil.Block) (TxStore, error) {
-	// Build a map of in-flight transactions because some of the inputs in
-	// this block could be referencing other transactions earlier in this
-	// block which are not yet in the chain.
-	txInFlight := map[wire.ShaHash]int{}
-	transactions := block.Transactions()
-	for i, tx := range transactions {
-		txInFlight[*tx.Sha()] = i
-	}
+	fmt.Println("Method fetchInputTransactions in txLoopup.go is not implemented")
 
-	// Loop through all of the transaction inputs (except for the coinbase
-	// which has no inputs) collecting them into sets of what is needed and
-	// what is already known (in-flight).
-	txNeededSet := make(map[wire.ShaHash]struct{})
-	txStore := make(TxStore)
-	for i, tx := range transactions[1:] {
-		for _, txIn := range tx.MsgTx().TxIn {
-			// Add an entry to the transaction store for the needed
-			// transaction with it set to missing by default.
-			originHash := &txIn.PreviousOutPoint.Hash
-			txD := &TxData{Hash: originHash, Err: database.ErrTxShaMissing}
-			txStore[*originHash] = txD
-
-			// It is acceptable for a transaction input to reference
-			// the output of another transaction in this block only
-			// if the referenced transaction comes before the
-			// current one in this block.  Update the transaction
-			// store acccordingly when this is the case.  Otherwise,
-			// we still need the transaction.
-			//
-			// NOTE: The >= is correct here because i is one less
-			// than the actual position of the transaction within
-			// the block due to skipping the coinbase.
-			if inFlightIndex, ok := txInFlight[*originHash]; ok &&
-				i >= inFlightIndex {
-
-				originTx := transactions[inFlightIndex]
-				txD.Tx = originTx
-				txD.BlockHeight = node.height
-				txD.Spent = make([]bool, len(originTx.MsgTx().TxOut))
-				txD.Err = nil
-			} else {
-				txNeededSet[*originHash] = struct{}{}
-			}
-		}
-	}
-
-	// Request the input transactions from the point of view of the node.
-	txNeededStore, err := b.fetchTxStore(node, txNeededSet)
-	if err != nil {
-		return nil, err
-	}
-
-	// Merge the results of the requested transactions and the in-flight
-	// transactions.
-	for _, txD := range txNeededStore {
-		txStore[*txD.Hash] = txD
-	}
-
-	return txStore, nil
+	return nil, nil
 }
 
 // FetchTransactionStore fetches the input transactions referenced by the
@@ -301,18 +249,21 @@ func (b *BlockChain) fetchInputTransactions(node *blockNode, block *btcutil.Bloc
 // also attempts to fetch the transaction itself so the returned TxStore can be
 // examined for duplicate transactions.
 func (b *BlockChain) FetchTransactionStore(tx *btcutil.Tx, includeSpent bool) (TxStore, error) {
-	// Create a set of needed transactions from the transactions referenced
-	// by the inputs of the passed transaction.  Also, add the passed
-	// transaction itself as a way for the caller to detect duplicates.
-	txNeededSet := make(map[wire.ShaHash]struct{})
-	txNeededSet[*tx.Sha()] = struct{}{}
-	for _, txIn := range tx.MsgTx().TxIn {
-		txNeededSet[txIn.PreviousOutPoint.Hash] = struct{}{}
-	}
+	// TODO: Implement this
+	fmt.Println("Method FetchTransactionStore in txLookup.go is not implemented")
 
-	// Request the input transactions from the point of view of the end of
-	// the main chain with or without without including fully spent transactions
-	// in the results.
-	txStore := fetchTxStoreMain(b.db, txNeededSet, includeSpent)
-	return txStore, nil
+	// // Create a set of needed transactions from the transactions referenced
+	// // by the inputs of the passed transaction.  Also, add the passed
+	// // transaction itself as a way for the caller to detect duplicates.
+	// txNeededSet := make(map[wire.ShaHash]struct{})
+	// txNeededSet[*tx.Sha()] = struct{}{}
+	// for _, txIn := range tx.MsgTx().TxIn {
+	// 	txNeededSet[txIn.PreviousOutPoint.Hash] = struct{}{}
+	// }
+
+	// // Request the input transactions from the point of view of the end of
+	// // the main chain with or without without including fully spent transactions
+	// // in the results.
+	// txStore := fetchTxStoreMain(b.db, txNeededSet, includeSpent)
+	return nil, nil //txStore, nil
 }

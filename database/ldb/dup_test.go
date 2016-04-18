@@ -141,7 +141,7 @@ out:
 	for _, lr := range listReply {
 		if lr.Err != nil {
 			t.Errorf("sha %v spent %v err %v\n", lr.Sha,
-				lr.TxSpent, lr.Err)
+				lr.TxData, lr.Err)
 		}
 	}
 
@@ -156,7 +156,7 @@ out:
 	for _, lr := range listReply {
 		if lr.Err != database.ErrTxShaMissing {
 			t.Errorf("sha %v spent %v err %v\n", lr.Sha,
-				lr.TxSpent, lr.Err)
+				lr.TxData, lr.Err)
 		}
 	}
 
@@ -170,7 +170,7 @@ out:
 			for _, lr := range txReply {
 				if lr.Err != nil {
 					t.Errorf("stx %v spent %v err %v\n", lr.Sha,
-						lr.TxSpent, lr.Err)
+						lr.TxData, lr.Err)
 				}
 			}
 		}

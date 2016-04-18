@@ -25,7 +25,6 @@ import (
 	"github.com/qchain/btcd/database"
 	"github.com/qchain/btcd/mining"
 	"github.com/qchain/btcd/peer"
-	"github.com/qchain/btcd/txscript"
 	"github.com/qchain/btcd/wire"
 	"github.com/qchain/btcutil"
 	"github.com/qchain/btcutil/bloom"
@@ -176,7 +175,6 @@ type server struct {
 	listeners            []net.Listener
 	chainParams          *chaincfg.Params
 	addrManager          *addrmgr.AddrManager
-	sigCache             *txscript.SigCache
 	rpcServer            *rpcServer
 	blockManager         *blockManager
 	addrIndexer          *addrIndexer
@@ -2409,7 +2407,6 @@ func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Param
 		db:                   db,
 		timeSource:           blockchain.NewMedianTime(),
 		services:             services,
-		sigCache:             txscript.NewSigCache(cfg.SigCacheMaxSize),
 	}
 	bm, err := newBlockManager(&s)
 	if err != nil {
@@ -2426,7 +2423,6 @@ func newServer(listenAddrs []string, db database.Db, chainParams *chaincfg.Param
 		MinRelayTxFee:         cfg.minRelayTxFee,
 		NewestSha:             s.db.NewestSha,
 		RelayNtfnChan:         s.relayNtfnChan,
-		SigCache:              s.sigCache,
 		TimeSource:            s.timeSource,
 	}
 	s.txMemPool = newTxMemPool(&txC)

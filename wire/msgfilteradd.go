@@ -25,13 +25,13 @@ type MsgFilterAdd struct {
 	Data []byte
 }
 
-// BtcDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
 // This is part of the Message interface implementation.
-func (msg *MsgFilterAdd) BtcDecode(r io.Reader, pver uint32) error {
+func (msg *MsgFilterAdd) MsgDecode(r io.Reader, pver uint32) error {
 	if pver < BIP0037Version {
 		str := fmt.Sprintf("filteradd message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgFilterAdd.BtcDecode", str)
+		return messageError("MsgFilterAdd.MsgDecode", str)
 	}
 
 	var err error
@@ -44,20 +44,20 @@ func (msg *MsgFilterAdd) BtcDecode(r io.Reader, pver uint32) error {
 	return nil
 }
 
-// BtcEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
 // This is part of the Message interface implementation.
-func (msg *MsgFilterAdd) BtcEncode(w io.Writer, pver uint32) error {
+func (msg *MsgFilterAdd) MsgEncode(w io.Writer, pver uint32) error {
 	if pver < BIP0037Version {
 		str := fmt.Sprintf("filteradd message invalid for protocol "+
 			"version %d", pver)
-		return messageError("MsgFilterAdd.BtcEncode", str)
+		return messageError("MsgFilterAdd.MsgEncode", str)
 	}
 
 	size := len(msg.Data)
 	if size > MaxFilterAddDataSize {
 		str := fmt.Sprintf("filteradd size too large for message "+
 			"[size %v, max %v]", size, MaxFilterAddDataSize)
-		return messageError("MsgFilterAdd.BtcEncode", str)
+		return messageError("MsgFilterAdd.MsgEncode", str)
 	}
 
 	err := WriteVarBytes(w, pver, msg.Data)

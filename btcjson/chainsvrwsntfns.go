@@ -154,16 +154,14 @@ func NewRescanProgressNtfn(hash string, height int32, time int64) *RescanProgres
 
 // TxAcceptedNtfn defines the txaccepted JSON-RPC notification.
 type TxAcceptedNtfn struct {
-	TxID   string
-	Amount float64
+	TxID string
 }
 
 // NewTxAcceptedNtfn returns a new instance which can be used to issue a
 // txaccepted JSON-RPC notification.
-func NewTxAcceptedNtfn(txHash string, amount float64) *TxAcceptedNtfn {
+func NewTxAcceptedNtfn(txHash string) *TxAcceptedNtfn {
 	return &TxAcceptedNtfn{
-		TxID:   txHash,
-		Amount: amount,
+		TxID: txHash,
 	}
 }
 
