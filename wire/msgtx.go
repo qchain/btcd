@@ -7,8 +7,9 @@ package wire
 import (
 	"bytes"
 	"encoding/binary"
-
 	"io"
+
+	"github.com/qchain/btcd/btcec"
 )
 
 const (
@@ -216,9 +217,10 @@ func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
 // valid immediately as opposed to some time in future.
 func NewMsgTx() *MsgTx {
 	return &MsgTx{
-		Type:     -1,
-		Data:     make([]byte, 0),
-		LockTime: uint32(0),
+		Type:       -1,
+		Data:       make([]byte, 0),
+		LockTime:   uint32(0),
+		Signatures: make([]*btcec.Signature, 0),
 	}
 }
 

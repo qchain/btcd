@@ -162,6 +162,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"validateaddress":       handleValidateAddress,
 	"verifychain":           handleVerifyChain,
 	"verifymessage":         handleVerifyMessage,
+	"verifydata":            handleVerifyData,
 }
 
 // list of commands that we recognise, but for which btcd has no support because
@@ -536,11 +537,99 @@ func handleCreateDataTransaction(s *rpcServer, cmd interface{}, closeChan <-chan
 	if err != nil {
 		return nil, err
 	}
-	//Put mex into correct interface and send.
+	//TODO: add fetch Privkey
+	// Signing from priv key.
+	pkBytes, err := hex.DecodeString("22a47fa09a223f2aa079edf85a7c2d4f87" +
+		"20ee63e502ee2869afab7de234b80c")
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	privKey, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), pkBytes)
+
+	// Sign a message using the private key.
+	messageHash := wire.DoubleSha256([]byte(mtxHex))
+	signature, err := privKey.Sign(messageHash)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// Appending signature to msg
+	mtx.AppendSig(signature)
+
+	// Serialize and display the signature.
+	fmt.Printf("Serialized Signature: %x\n", signature.Serialize())
+
+	// Verify the signature for the message using the public key.
+	verified := signature.Verify(messageHash, pubKey)
+	fmt.Printf("Signature Verified? %v\n", verified)
+
+	//Put mtx into correct interface and send.
 	srtx := btcjson.NewSendRawTransactionCmd(mtxHex, nil)
 	txid, err := handleSendRawTransaction(s, srtx, closeChan)
 
 	return txid, nil
+}
+
+func handleVerifyData(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+	c := cmd.(*btcjson.VerifyDataCmd)
+
+	txHash, err := wire.NewShaHashFromStr(c.Txid)
+	if err != nil {
+		return nil, rpcDecodeHexError(c.Txid)
+	}
+
+	// Check to see if tx is in pool, if not check db.
+	var mtx *wire.MsgTx
+	tx, err := s.server.txMemPool.FetchTransaction(txHash)
+	if err != nil {
+		txList, err := s.server.db.FetchTxBySha(txHash)
+		fmt.Printf("Handle raw tx{ txList=%v, err=%v }\n", txList, err)
+		if err != nil || len(txList) == 0 {
+			return nil, &btcjson.RPCError{
+				Code:    btcjson.ErrRPCNoTxInfo,
+				Message: "No information available about transaction",
+			}
+		}
+
+		lastTx := txList[len(txList)-1]
+		mtx = lastTx.Tx
+	} else {
+		mtx = tx.MsgTx()
+	}
+
+	//TODO: Add get Pubkey fetch
+	// Decode hex-encoded serialized public key.
+	pubKeyBytes, err := hex.DecodeString("02a673638cb9587cb68ea08dbef685c" +
+		"6f2d2a751a8b3c6f2a7e9a4999e6e4bfaf5")
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	signature, err := btcec.ParseSignature(mtx.Signatures, btcec.S256())
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// Verify the signature for the message using the public key.
+	message := "test message"
+	messageHash := wire.DoubleSha256([]byte(message))
+	verified := signature.Verify(messageHash, pubKey)
+	fmt.Println("Signature Verified?", verified)
+
+	return nil, nil
 }
 
 // handleGetFileByHexTx handles GetFileByHexTx commands.

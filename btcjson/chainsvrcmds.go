@@ -72,23 +72,22 @@ func NewCreateRawTransactionCmd(inputs []TransactionInput, amounts map[string]fl
 	}
 }
 
-
 type CreateDataTransactionCmd struct {
-	FileName 	string
-	Version 	*int
+	FileName string
+	Version  *int
 }
 
 func NewCreateDataTransactionCmd(fileName string, version *int) *CreateDataTransactionCmd {
 
 	return &CreateDataTransactionCmd{
-		FileName:	fileName,
-		Version:	version,
+		FileName: fileName,
+		Version:  version,
 	}
 }
 
 // GetFileByHextxCmd defines the getfilebyhextx JSON-RPC command.
 type GetFileByHextxCmd struct {
-	HexTx string
+	HexTx    string
 	FileName string
 }
 
@@ -96,14 +95,14 @@ type GetFileByHextxCmd struct {
 // a getfilebyhextx JSON-RPC command.
 func NewGetFileByHextxCmd(hexTx string, fileName string) *GetFileByHextxCmd {
 	return &GetFileByHextxCmd{
-		HexTx: hexTx,
+		HexTx:    hexTx,
 		FileName: fileName,
 	}
 }
 
 // GetFileByTxidCmd defines the getfilebytxid JSON-RPC command.
 type GetFileByTxidCmd struct {
-	Txid string
+	Txid     string
 	FileName string
 }
 
@@ -111,7 +110,7 @@ type GetFileByTxidCmd struct {
 // a getfilebytxid JSON-RPC command.
 func NewGetFileByTxidCmd(txid string, fileName string) *GetFileByTxidCmd {
 	return &GetFileByTxidCmd{
-		Txid: txid,
+		Txid:     txid,
 		FileName: fileName,
 	}
 }
@@ -737,6 +736,16 @@ func NewVerifyMessageCmd(address, signature, message string) *VerifyMessageCmd {
 	}
 }
 
+type VerifyDataCmd struct {
+	Txid string
+}
+
+func NewVerifyDataCmd(txid string) *VerifyDataCmd {
+	return &VerifyDataCmd{
+		Txid: txid,
+	}
+}
+
 // VerifyTxOutProofCmd defines the verifytxoutproof JSON-RPC command.
 type VerifyTxOutProofCmd struct {
 	Proof string
@@ -798,6 +807,7 @@ func init() {
 	MustRegisterCmd("submitblock", (*SubmitBlockCmd)(nil), flags)
 	MustRegisterCmd("validateaddress", (*ValidateAddressCmd)(nil), flags)
 	MustRegisterCmd("verifychain", (*VerifyChainCmd)(nil), flags)
+	MustRegisterCmd("verifydata", (*VerifyDataCmd)(nil), flags)
 	MustRegisterCmd("verifymessage", (*VerifyMessageCmd)(nil), flags)
 	MustRegisterCmd("verifytxoutproof", (*VerifyTxOutProofCmd)(nil), flags)
 }
