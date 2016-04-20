@@ -60,6 +60,7 @@ type MsgTx struct {
 	Type     int32
 	LockTime uint32
 	Data     []byte
+	Sig      []byte
 }
 
 // SetData sets data to the transaction message.
@@ -70,6 +71,11 @@ func (msg *MsgTx) SetData(data []byte) {
 //  AppendData appends data to the transaction message.
 func (msg *MsgTx) AppendData(data []byte) {
 	msg.Data = append(msg.Data, data...)
+}
+
+func (msg *MsgTx) AppendSig(sig *btcec.Signature) {
+	data := sig.Serialize()
+	msg.Sig = append(msg.Sig, data...)
 }
 
 // TxSha generates the ShaHash name for the transaction.
@@ -90,9 +96,10 @@ func (msg *MsgTx) Copy() *MsgTx {
 		Type:     msg.Type,
 		Data:     make([]byte, 0, len(msg.Data)),
 		LockTime: msg.LockTime,
+		Sig:      make([]byte, 0, len(msg.Sig)),
 	}
 	copy(msg.Data, newTx.Data)
-
+	copy(msg.Sig, newTx.Sig)
 	return &newTx
 }
 
@@ -113,6 +120,13 @@ func (msg *MsgTx) MsgDecode(r io.Reader, pver uint32) error {
 		return err
 	}
 	msg.LockTime = binary.LittleEndian.Uint32(buf[:])
+
+	sig := make([]byte, 71)
+	_, err = r.Read(sig[:])
+	if err != nil {
+		return err
+	}
+	msg.Sig = sig
 
 	databuf := make([]byte, 1024)
 	data := make([]byte, 0)
@@ -162,6 +176,11 @@ func (msg *MsgTx) MsgEncode(w io.Writer, pver uint32) error {
 
 	binary.LittleEndian.PutUint32(buf[:], msg.LockTime)
 	_, err = w.Write(buf[:])
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write(msg.Sig)
 	if err != nil {
 		return err
 	}
@@ -217,10 +236,9 @@ func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
 // valid immediately as opposed to some time in future.
 func NewMsgTx() *MsgTx {
 	return &MsgTx{
-		Type:       -1,
-		Data:       make([]byte, 0),
-		LockTime:   uint32(0),
-		Signatures: make([]*btcec.Signature, 0),
+		Type:     -1,
+		Data:     make([]byte, 0),
+		LockTime: uint32(0),
 	}
 }
 

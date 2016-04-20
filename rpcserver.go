@@ -532,23 +532,24 @@ func handleCreateDataTransaction(s *rpcServer, cmd interface{}, closeChan <-chan
 	mtx := wire.NewMsgTx()
 	// Appending bytefile to data field.
 	mtx.AppendData(byteFile)
-	// encode tx to hex
-	mtxHex, err := messageToHex(mtx)
+	//TODO: add fetch Privkey
+	// Signing from priv key.
+	privKey, err := btcec.NewPrivateKey(btcec.S256())
 	if err != nil {
 		return nil, err
 	}
-	//TODO: add fetch Privkey
-	// Signing from priv key.
-	pkBytes, err := hex.DecodeString("22a47fa09a223f2aa079edf85a7c2d4f87" +
-		"20ee63e502ee2869afab7de234b80c")
+	pubKey := privKey.PubKey()
+	fmt.Printf("PubKey from genPriv %x \n", pubKey)
+	//hex.DecodeString("22a47fa09a223f2aa079edf85a7c2d4f87" +
+	//	"20ee63e502ee2869afab7de234b80c")
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
-	privKey, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), pkBytes)
+	//privKey, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), pkBytes)
 
 	// Sign a message using the private key.
-	messageHash := wire.DoubleSha256([]byte(mtxHex))
+	messageHash := wire.DoubleSha256([]byte(mtx.Data))
 	signature, err := privKey.Sign(messageHash)
 	if err != nil {
 		fmt.Println(err)
@@ -559,7 +560,13 @@ func handleCreateDataTransaction(s *rpcServer, cmd interface{}, closeChan <-chan
 	mtx.AppendSig(signature)
 
 	// Serialize and display the signature.
-	fmt.Printf("Serialized Signature: %x\n", signature.Serialize())
+	fmt.Printf("Serialized Signature: %d\n", len(signature.Serialize()))
+
+	// encode tx to hex
+	mtxHex, err := messageToHex(mtx)
+	if err != nil {
+		return nil, err
+	}
 
 	// Verify the signature for the message using the public key.
 	verified := signature.Verify(messageHash, pubKey)
@@ -572,6 +579,7 @@ func handleCreateDataTransaction(s *rpcServer, cmd interface{}, closeChan <-chan
 	return txid, nil
 }
 
+// handleVerifyData handles verifydata command, which verifies data using the signature
 func handleVerifyData(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
 	c := cmd.(*btcjson.VerifyDataCmd)
 
@@ -598,38 +606,27 @@ func handleVerifyData(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) 
 	} else {
 		mtx = tx.MsgTx()
 	}
-
-	//TODO: Add get Pubkey fetch
-	// Decode hex-encoded serialized public key.
-	pubKeyBytes, err := hex.DecodeString("02a673638cb9587cb68ea08dbef685c" +
-		"6f2d2a751a8b3c6f2a7e9a4999e6e4bfaf5")
+	//Parsing mtx.Sig to btcec.Signature format
+	sig, err := btcec.ParseDERSignature(mtx.Sig, btcec.S256())
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
-	pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-	signature, err := btcec.ParseSignature(mtx.Signatures, btcec.S256())
+	// Generates pubkey from signature
+	messageHash := wire.DoubleSha256([]byte(mtx.Data))
+	pubKey2, err := btcec.RecoverKeyFromSignature(btcec.S256(), sig, messageHash, 1, false)
+	fmt.Printf("Pubkey from sig %x \n", pubKey2)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 
 	// Verify the signature for the message using the public key.
-	message := "test message"
-	messageHash := wire.DoubleSha256([]byte(message))
-	verified := signature.Verify(messageHash, pubKey)
+
+	verified := sig.Verify(messageHash, pubKey2)
 	fmt.Println("Signature Verified?", verified)
 
-	return nil, nil
+	return verified, nil
 }
 
 // handleGetFileByHexTx handles GetFileByHexTx commands.
@@ -3168,29 +3165,6 @@ func handleVerifyMessage(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 
 	// Return boolean if addresses match.
 	return address.EncodeAddress() == c.Address, nil
-}
-
-//
-
-func handleTheTruth(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-
-	return "YOU CANT Handler THE TRUTH", nil
-}
-
-func handleKenneth(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-
-	sha, height, err := s.server.db.NewestSha()
-	if err != nil {
-		context := "Failed to get newest hash"
-		return nil, internalRPCError(err.Error(), context)
-	}
-
-	result := btcjson.KennethResult{
-		Name:   string("kenneth"),
-		Height: int64(height),
-		Hash:   sha.String(),
-	}
-	return &result, nil
 }
 
 // rpcServer holds the items the rpc server may need to access (config,

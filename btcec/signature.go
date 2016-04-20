@@ -273,7 +273,7 @@ func hashToInt(hash []byte, c elliptic.Curve) *big.Int {
 // of the loop * 2 - on the first iteration of j we do the R case, else the -R
 // case in step 1.6. This counter is used in the bitcoin compressed signature
 // format and thus we match bitcoind's behaviour here.
-func recoverKeyFromSignature(curve *KoblitzCurve, sig *Signature, msg []byte,
+func RecoverKeyFromSignature(curve *KoblitzCurve, sig *Signature, msg []byte,
 	iter int, doChecks bool) (*PublicKey, error) {
 	// 1.1 x = (n * i) + r
 	Rx := new(big.Int).Mul(curve.Params().N,
@@ -350,7 +350,7 @@ func SignCompact(curve *KoblitzCurve, key *PrivateKey,
 	// algorithm returns R and S mod N therefore they will be the bitsize of
 	// the curve, and thus correctly sized.
 	for i := 0; i < (curve.H+1)*2; i++ {
-		pk, err := recoverKeyFromSignature(curve, sig, hash, i, true)
+		pk, err := RecoverKeyFromSignature(curve, sig, hash, i, true)
 		if err == nil && pk.X.Cmp(key.X) == 0 && pk.Y.Cmp(key.Y) == 0 {
 			result := make([]byte, 1, 2*curve.byteSize+1)
 			result[0] = 27 + byte(i)
@@ -401,7 +401,7 @@ func RecoverCompact(curve *KoblitzCurve, signature,
 		S: new(big.Int).SetBytes(signature[bitlen+1:]),
 	}
 	// The iteration used here was encoded
-	key, err := recoverKeyFromSignature(curve, sig, hash, iteration, false)
+	key, err := RecoverKeyFromSignature(curve, sig, hash, iteration, false)
 	if err != nil {
 		return nil, false, err
 	}

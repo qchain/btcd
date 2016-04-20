@@ -759,22 +759,6 @@ func NewVerifyTxOutProofCmd(proof string) *VerifyTxOutProofCmd {
 	}
 }
 
-type theTruthCmd struct {
-	Truth string
-}
-
-func NewTheTruthCmd(truth string) *theTruthCmd {
-	return &theTruthCmd{
-		Truth: truth,
-	}
-}
-
-type kennethCmd struct{}
-
-func NewKennethCmd(name string, height int64) *kennethCmd {
-	return &kennethCmd{}
-}
-
 func init() {
 	// No special flags for commands in this file.
 	flags := UsageFlag(0)
@@ -826,6 +810,4 @@ func init() {
 	MustRegisterCmd("verifydata", (*VerifyDataCmd)(nil), flags)
 	MustRegisterCmd("verifymessage", (*VerifyMessageCmd)(nil), flags)
 	MustRegisterCmd("verifytxoutproof", (*VerifyTxOutProofCmd)(nil), flags)
-	MustRegisterCmd("canthandlethetruth", (*theTruthCmd)(nil), flags)
-	MustRegisterCmd("getinfokenneth", (*kennethCmd)(nil), flags)
 }
