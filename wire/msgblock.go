@@ -30,6 +30,7 @@ const maxTxPerBlock = (MaxBlockPayload / minTxPayload) + 1
 // TxLoc holds locator data for the offset and length of where a transaction is
 // located within a MsgBlock data buffer.
 type TxLoc struct {
+	TxType  int
 	TxStart int
 	TxLen   int
 }
@@ -54,7 +55,7 @@ func (msg *MsgBlock) ClearTransactions() {
 	msg.Transactions = make([]*MsgTx, 0, defaultTransactionAlloc)
 }
 
-// MsgDecode decodes r using the bitcoin protocol encoding into the receiver.
+// MsgDecode decodes r using the qchain protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 // See Deserialize for decoding blocks stored to disk, such as in a database, as
 // opposed to decoding blocks from the wire.
@@ -78,10 +79,19 @@ func (msg *MsgBlock) MsgDecode(r io.Reader, pver uint32) error {
 		return messageError("MsgBlock.MsgDecode", str)
 	}
 
+	txHeaders := make([]TxHeader, txCount)
+	for i, _ := range txHeaders {
+		err := readTxHeader(r, &txHeaders[i])
+		if err != nil {
+			return err
+		}
+	}
+
 	msg.Transactions = make([]*MsgTx, 0, txCount)
-	for i := uint64(0); i < txCount; i++ {
+	for _, txHeader := range txHeaders {
 		tx := MsgTx{}
-		err := tx.MsgDecode(r, pver)
+		tx.Type = txHeader.TxType // FIX: Redudant?
+		err := tx.MsgDecodeFixed(r, pver, txHeader.TxSize)
 		if err != nil {
 			return err
 		}
@@ -136,25 +146,40 @@ func (msg *MsgBlock) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 		return nil, messageError("MsgBlock.DeserializeTxLoc", str)
 	}
 
-	// Deserialize each transaction while keeping track of its location
-	// within the byte stream.
-	msg.Transactions = make([]*MsgTx, 0, txCount)
+	txHeaders := make([]TxHeader, txCount)
+	for i, _ := range txHeaders {
+		err := readTxHeader(r, &txHeaders[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// We need to add the offset into the block to where the data portion
+	// is stored. This is because TxLoc is relative to the entire block not
+	// just the main data portion of it.
+	offsetToDataBlock := fullLen - r.Len()
 	txLocs := make([]TxLoc, txCount)
 	for i := uint64(0); i < txCount; i++ {
-		txLocs[i].TxStart = fullLen - r.Len()
+		txLocs[i].TxType = int(txHeaders[i].TxType)
+		txLocs[i].TxStart = int(txHeaders[i].TxOffset) + offsetToDataBlock
+		txLocs[i].TxLen = int(txHeaders[i].TxSize)
+	}
+
+	msg.Transactions = make([]*MsgTx, 0, txCount)
+	for i, _ := range txHeaders {
 		tx := MsgTx{}
-		err := tx.Deserialize(r)
+		tx.Type = txHeaders[i].TxType // FIX: Redudant?
+		err := tx.MsgDecodeFixed(r, ProtocolVersion, txHeaders[i].TxSize)
 		if err != nil {
 			return nil, err
 		}
 		msg.Transactions = append(msg.Transactions, &tx)
-		txLocs[i].TxLen = (fullLen - r.Len()) - txLocs[i].TxStart
 	}
 
 	return txLocs, nil
 }
 
-// MsgEncode encodes the receiver to w using the bitcoin protocol encoding.
+// MsgEncode encodes the receiver to w using the qchain protocol encoding.
 // This is part of the Message interface implementation.
 // See Serialize for encoding blocks to be stored to disk, such as in a
 // database, as opposed to encoding blocks for the wire.
@@ -167,6 +192,15 @@ func (msg *MsgBlock) MsgEncode(w io.Writer, pver uint32) error {
 	err = WriteVarInt(w, pver, uint64(len(msg.Transactions)))
 	if err != nil {
 		return err
+	}
+
+	var offset = uint32(0)
+	for _, tx := range msg.Transactions {
+		size, err := writeTxHeader(w, tx, offset)
+		offset += size
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, tx := range msg.Transactions {
@@ -203,7 +237,7 @@ func (msg *MsgBlock) SerializeSize() int {
 	n := blockHeaderLen + VarIntSerializeSize(uint64(len(msg.Transactions)))
 
 	for _, tx := range msg.Transactions {
-		n += tx.SerializeSize()
+		n += tx.SerializeSize() + TxHeaderSize
 	}
 
 	return n

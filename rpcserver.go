@@ -591,7 +591,6 @@ func handleGetFileByTxId(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 	tx, err := s.server.txMemPool.FetchTransaction(txHash)
 	if err != nil {
 		txList, err := s.server.db.FetchTxBySha(txHash)
-		fmt.Printf("Handle raw tx{ txList=%v, err=%v }\n", txList, err)
 		if err != nil || len(txList) == 0 {
 			return nil, &btcjson.RPCError{
 				Code:    btcjson.ErrRPCNoTxInfo,
@@ -2155,7 +2154,6 @@ func handleGetRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan str
 	tx, err := s.server.txMemPool.FetchTransaction(txHash)
 	if err != nil {
 		txList, err := s.server.db.FetchTxBySha(txHash)
-		fmt.Printf("Handle raw tx{ txList=%v, err=%v }\n", txList, err)
 		if err != nil || len(txList) == 0 {
 			return nil, &btcjson.RPCError{
 				Code:    btcjson.ErrRPCNoTxInfo,

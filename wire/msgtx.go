@@ -7,7 +7,7 @@ package wire
 import (
 	"bytes"
 	"encoding/binary"
-
+	"errors"
 	"io"
 )
 
@@ -61,6 +61,12 @@ type MsgTx struct {
 	Data     []byte
 }
 
+const (
+	// The number of bytes the MsgTx struct adds to the inner trasaction.
+	// TODO: Make the MsgTxHeader a part of TxHeader when serialized.
+	MsgTxHeader = 4 + 4
+)
+
 // SetData sets data to the transaction message.
 func (msg *MsgTx) SetData(data []byte) {
 	msg.Data = data
@@ -87,10 +93,10 @@ func (msg *MsgTx) TxSha() ShaHash {
 func (msg *MsgTx) Copy() *MsgTx {
 	newTx := MsgTx{
 		Type:     msg.Type,
-		Data:     make([]byte, 0, len(msg.Data)),
+		Data:     make([]byte, len(msg.Data)),
 		LockTime: msg.LockTime,
 	}
-	copy(msg.Data, newTx.Data)
+	copy(newTx.Data, msg.Data)
 
 	return &newTx
 }
@@ -120,6 +126,56 @@ func (msg *MsgTx) MsgDecode(r io.Reader, pver uint32) error {
 		data = append(data, databuf[:n]...)
 		if err == io.EOF {
 			break
+		}
+		if err != nil {
+			return err
+		}
+	}
+	msg.Data = data
+
+	return nil
+}
+
+// This function is similar to MsgDecode. It differs in that it takes a size paramter
+// and as such does not read the reader until some error happens including EOF.
+// It will try to read up to size bytes before returning and those will make up the
+// transaction.
+func (msg *MsgTx) MsgDecodeFixed(r io.Reader, pver uint32, size uint32) error {
+	var buf [4]byte
+	_, err := io.ReadFull(r, buf[:])
+	if err != nil {
+		return err
+	}
+	msg.Type = int32(binary.LittleEndian.Uint32(buf[:]))
+
+	_, err = io.ReadFull(r, buf[:])
+	if err != nil {
+		return err
+	}
+	msg.LockTime = binary.LittleEndian.Uint32(buf[:])
+
+	databufSize := 1024
+	databuf := make([]byte, databufSize)
+	dataSize := size - MsgTxHeader
+	data := make([]byte, 0, dataSize)
+	remaninigBytes := size - MsgTxHeader
+	for uint32(len(data)) < dataSize {
+		var n int
+		var err error
+		if remaninigBytes < uint32(databufSize) {
+			n, err = r.Read(databuf[:remaninigBytes])
+		} else {
+			n, err = r.Read(databuf)
+		}
+		remaninigBytes -= uint32(n)
+		data = append(data, databuf[:n]...)
+		if err == io.EOF {
+			if uint32(len(data)) < size {
+				return errors.New("unexpected end of file while decoding transaction " +
+					"in MsgDecodeFixed")
+			} else {
+				return nil
+			}
 		}
 		if err != nil {
 			return err

@@ -331,9 +331,6 @@ func (db *LevelDb) FetchTxBySha(txsha *wire.ShaHash) ([]*database.TxListReply, e
 	db.dbLock.Lock()
 	defer db.dbLock.Unlock()
 
-	// TODO: Implement this
-	fmt.Println("Method FetchTxBySha in ldb/tx.go has not been implemented")
-
 	replylen := 0
 	replycnt := 0
 

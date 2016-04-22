@@ -5,6 +5,7 @@
 package ldb
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -379,6 +380,11 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int32, rerr error) 
 		log.Warnf("Failed to obtain raw block sha %v", blocksha)
 		return 0, err
 	}
+	txloc, err := block.TxLoc()
+	if err != nil {
+		log.Warnf("Failed to obtain raw block sha %v", blocksha)
+		return 0, err
+	}
 
 	// Insert block into database
 	newheight, err := db.insertBlockData(blocksha, &mblock.Header.PrevBlock,
@@ -389,6 +395,27 @@ func (db *LevelDb) InsertBlock(block *btcutil.Block) (height int32, rerr error) 
 		return 0, err
 	}
 
+	// Insert all transactions from block into database
+	for txidx, tx := range mblock.Transactions {
+		txsha, err := block.TxSha(txidx)
+		if err != nil {
+			log.Warnf("failed to compute tx name block %v idx %v err %v", blocksha, txidx, err)
+			return 0, err
+		}
+
+		var databuf bytes.Buffer
+		err = tx.Serialize(&databuf)
+		if err != nil {
+			log.Warnf("failed to serialize tx block %v idx %v err %v", blocksha, txidx, err)
+		}
+
+		err = db.insertTx(txsha, newheight, txloc[txidx].TxStart, txloc[txidx].TxLen, databuf.Bytes())
+		if err != nil {
+			log.Warnf("block %v idx %v failed to insert tx %v %v err %v", blocksha, newheight, &txsha, txidx, err)
+			return 0, err
+		}
+
+	}
 	return newheight, nil
 }
 
