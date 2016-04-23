@@ -25,7 +25,7 @@ const (
 	minTxPayload = 10
 )
 
-// List of transaction types and there numerical equivalent.
+// List of transaction types and their numerical equivalent.
 const (
 	TxTypeUnknown = -1
 	TxTypeData    = 1
