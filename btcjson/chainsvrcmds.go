@@ -74,44 +74,40 @@ func NewCreateRawTransactionCmd(inputs []TransactionInput, amounts map[string]fl
 
 type CreateDataTransactionCmd struct {
 	FileName string
-	Version  *int
+	Type     *int
 }
 
-func NewCreateDataTransactionCmd(fileName string, version *int) *CreateDataTransactionCmd {
+func NewCreateDataTransactionCmd(fileName string, txtype *int) *CreateDataTransactionCmd {
 
 	return &CreateDataTransactionCmd{
 		FileName: fileName,
-		Version:  version,
+		Type:     txtype,
 	}
 }
 
 // GetFileByHextxCmd defines the getfilebyhextx JSON-RPC command.
 type GetFileByHextxCmd struct {
-	HexTx    string
-	FileName string
+	HexTx string
 }
 
 // NewGetFileByHextxCmd returns a new instance which can be used to issue
 // a getfilebyhextx JSON-RPC command.
 func NewGetFileByHextxCmd(hexTx string, fileName string) *GetFileByHextxCmd {
 	return &GetFileByHextxCmd{
-		HexTx:    hexTx,
-		FileName: fileName,
+		HexTx: hexTx,
 	}
 }
 
 // GetFileByTxidCmd defines the getfilebytxid JSON-RPC command.
 type GetFileByTxidCmd struct {
-	Txid     string
-	FileName string
+	Txid string
 }
 
 // NewGetFileByHextxCmd returns a new instance which can be used to issue
 // a getfilebytxid JSON-RPC command.
-func NewGetFileByTxidCmd(txid string, fileName string) *GetFileByTxidCmd {
+func NewGetFileByTxidCmd(txid string) *GetFileByTxidCmd {
 	return &GetFileByTxidCmd{
-		Txid:     txid,
-		FileName: fileName,
+		Txid: txid,
 	}
 }
 
