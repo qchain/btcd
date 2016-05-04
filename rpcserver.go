@@ -152,6 +152,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"getrawtransaction":     handleGetRawTransaction,
 	"getwork":               handleGetWork,
 	"help":                  handleHelp,
+	"login":				 handleLogIn,
 	"node":                  handleNode,
 	"ping":                  handlePing,
 	"searchrawtransactions": handleSearchRawTransactions,
@@ -519,6 +520,36 @@ func handleCreateRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan 
 	}
 	return mtxHex, nil
 }
+
+// handleLogIn
+func handleLogIn(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+	c := cmd.(*btcjson.LogInCmd)
+	var user *User
+	_, err := os.Stat("users/" + c.Username)
+	if err != nil && !os.IsNotExist(err) {
+		// A stat error not due to a non-existant file should be
+		// returned to the caller.
+		return nil, err
+	} else if err != nil && os.IsNotExist(err){
+		// Create new user
+		user = user.NewUser(c.Username)
+
+	} else if err == nil {
+		// Keystore file exists.
+		userfile, err := ioutil.ReadFile("users/" + c.Username)
+		buf := bytes.NewBuffer(userfile)
+		user.Deserialize(buf)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+
+
+	//ioutil.WriteFile("users/" + c.Username, user, 0644)
+	return "yay", nil
+}
+
 
 // handleCreateDataTransaction handles CreateDataTransactions.
 // CreateDataTransaction takes a filepath and inserts it in a tx.

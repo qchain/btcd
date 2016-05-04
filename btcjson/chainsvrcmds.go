@@ -72,6 +72,17 @@ func NewCreateRawTransactionCmd(inputs []TransactionInput, amounts map[string]fl
 	}
 }
 
+type LogInCmd struct {
+	Username string
+}
+
+func NewLogInCmd(username string) *LogInCmd {
+	return &LogInCmd{
+		Username: username,
+	}
+}
+
+
 type CreateDataTransactionCmd struct {
 	FileName string
 	Type     *int
@@ -794,6 +805,7 @@ func init() {
 	MustRegisterCmd("getwork", (*GetWorkCmd)(nil), flags)
 	MustRegisterCmd("help", (*HelpCmd)(nil), flags)
 	MustRegisterCmd("invalidateblock", (*InvalidateBlockCmd)(nil), flags)
+	MustRegisterCmd("login", (*LogInCmd)(nil), flags)
 	MustRegisterCmd("ping", (*PingCmd)(nil), flags)
 	MustRegisterCmd("reconsiderblock", (*ReconsiderBlockCmd)(nil), flags)
 	MustRegisterCmd("searchrawtransactions", (*SearchRawTransactionsCmd)(nil), flags)
