@@ -74,14 +74,29 @@ func NewCreateRawTransactionCmd(inputs []TransactionInput, amounts map[string]fl
 
 type LogInCmd struct {
 	Username string
+	Password string
 }
 
-func NewLogInCmd(username string) *LogInCmd {
+func NewLogInCmd(username, password string) *LogInCmd {
 	return &LogInCmd{
 		Username: username,
+		Password: password,
 	}
 }
 
+type CreateSignedDataTxCmd struct {
+	Filename string
+	Username string
+	Password string
+}
+
+func NewCreateSignedDataTxCmd(filename, username, password string) *CreateSignedDataTxCmd {
+	return &CreateSignedDataTxCmd{
+		Filename: filename,
+		Username: username,
+		Password: password,
+	}
+}
 
 type CreateDataTransactionCmd struct {
 	FileName string
@@ -773,6 +788,7 @@ func init() {
 	MustRegisterCmd("addnode", (*AddNodeCmd)(nil), flags)
 	MustRegisterCmd("createrawtransaction", (*CreateRawTransactionCmd)(nil), flags)
 	MustRegisterCmd("createdatatransaction", (*CreateDataTransactionCmd)(nil), flags)
+	MustRegisterCmd("createsigneddatatx", (*CreateSignedDataTxCmd)(nil), flags)
 	MustRegisterCmd("getfilebyhextx", (*GetFileByHextxCmd)(nil), flags)
 	MustRegisterCmd("getfilebytxid", (*GetFileByTxidCmd)(nil), flags)
 	MustRegisterCmd("decoderawtransaction", (*DecodeRawTransactionCmd)(nil), flags)

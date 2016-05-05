@@ -124,6 +124,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"addnode":               handleAddNode,
 	"createrawtransaction":  handleCreateRawTransaction,
 	"createdatatransaction": handleCreateDataTransaction,
+	"createsigneddatatx":	 handleCreateSignedDataTx,
 	"getfilebyhextx":        handleGetFileByHexTx,
 	"getfilebytxid":         handleGetFileByTxId,
 	"debuglevel":            handleDebugLevel,
@@ -152,7 +153,7 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"getrawtransaction":     handleGetRawTransaction,
 	"getwork":               handleGetWork,
 	"help":                  handleHelp,
-	"login":				 handleLogIn,
+	"login":                 handleLogIn,
 	"node":                  handleNode,
 	"ping":                  handlePing,
 	"searchrawtransactions": handleSearchRawTransactions,
@@ -524,32 +525,86 @@ func handleCreateRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan 
 // handleLogIn
 func handleLogIn(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
 	c := cmd.(*btcjson.LogInCmd)
-	var user *User
+	pass := c.Password
+	fmt.Println("Logging in..")
 	_, err := os.Stat("users/" + c.Username)
 	if err != nil && !os.IsNotExist(err) {
 		// A stat error not due to a non-existant file should be
 		// returned to the caller.
 		return nil, err
-	} else if err != nil && os.IsNotExist(err){
+	} else if err != nil && os.IsNotExist(err) {
 		// Create new user
-		user = user.NewUser(c.Username)
-
-	} else if err == nil {
-		// Keystore file exists.
-		userfile, err := ioutil.ReadFile("users/" + c.Username)
-		buf := bytes.NewBuffer(userfile)
-		user.Deserialize(buf)
+		fmt.Println("Creating user " + c.Username + ".")
+		user := NewUser()
+		user.Username = c.Username
+		user.Password, err = user.SetPassword(pass)
+		user.Key, err = user.NewKey(pass)
 		if err != nil {
 			return nil, err
 		}
+		user.Save()
+		pkBytes, err := user.GetKey(pass)
+		if err != nil {
+			return nil, err
+		}
+		return pkBytes, nil
+	} else if err == nil {
+		// Keystore file exists.
+		userfile, err := ioutil.ReadFile("users/" + c.Username)
+		if err != nil {
+			return nil, err
+		}
+		user := NewUser()
+		buf := bytes.NewBuffer(userfile)
+		user.Deserialize(buf)
+		pkBytes, err := user.GetKey(pass)
+		if err != nil {
+			return nil, err
+		}
+		return pkBytes, nil
 	}
 
-
-
-	//ioutil.WriteFile("users/" + c.Username, user, 0644)
-	return "yay", nil
+	return nil, errors.New("err is neither nil nor not nil. World is ending")
 }
 
+func handleCreateSignedDataTx(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+	c := cmd.(*btcjson.CreateSignedDataTxCmd)
+
+	// Read bytes from file
+	byteFile, err := ioutil.ReadFile(c.Filename)
+	if err != nil {
+		return nil, err
+	}
+
+	txf := wire.NewTxSignFile()
+	txf.Filename = c.Filename
+	txf.Data = byteFile
+	//TODO: add fetch Privkey
+	// Signing from priv key.
+	usercmd := btcjson.NewLogInCmd(c.Username, c.Password)
+	pkBytes, err := handleLogIn(s, usercmd, closeChan)
+	privKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), pkBytes.([]byte))
+	if err != nil {
+		return nil, err
+	}
+	//pubKey := privKey.PubKey()
+
+	// Sign a message using the private key.
+	messageHash := wire.DoubleSha256([]byte(txf.Data))
+	signature, err := privKey.Sign(messageHash)
+	if err != nil {
+		return nil, err
+	}
+
+	// Appending signature to msg
+	txf.SetSig(signature)
+	txid, err := WrapAndSend(txf, s, closeChan)
+	if err != nil {
+		return nil, err
+	}
+	return txid, nil
+
+}
 
 // handleCreateDataTransaction handles CreateDataTransactions.
 // CreateDataTransaction takes a filepath and inserts it in a tx.
@@ -632,9 +687,13 @@ func WrapAndSend(tx wire.TxInterface, s *rpcServer, closeChan <-chan struct{}) (
 	//Put mtx into correct interface and send.
 	srtx := btcjson.NewSendRawTransactionCmd(mtxHex, nil)
 	txid, err := handleSendRawTransaction(s, srtx, closeChan)
-	gfbtx := btcjson.NewGetFileByTxidCmd(txid.(string))
+	if err != nil {
+		return nil, err
+	}
+/*	gfbtx := btcjson.NewGetFileByTxidCmd(txid.(string))
 	filename, err := handleGetFileByTxId(s, gfbtx, closeChan)
-	return filename, nil
+	return filename, nil*/
+	return txid, nil
 }
 
 // handleVerifyData handles verifydata command, which verifies data using the signature
@@ -775,7 +834,6 @@ func handleGetFileByTxId(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 	}
 
 	buf := bytes.NewBuffer(mtx.Data)
-	fmt.Printf("mtx.Type=%d\n", mtx.Type)
 	switch mtx.Type {
 
 	case wire.TxTypeFile:
@@ -785,10 +843,8 @@ func handleGetFileByTxId(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 		return txf.Filename, nil
 
 	case wire.TxTypeSignFile:
-		fmt.Println("Choosing 3")
 		txf := wire.NewTxSignFile()
 		txf.Deserialize(buf)
-		fmt.Printf("%+v", txf)
 		err = ioutil.WriteFile(txf.Filename, txf.Data, 0644)
 		return txf.Filename, nil
 
