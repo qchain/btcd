@@ -326,7 +326,7 @@ func NewBlockTemplate(policy *mining.Policy, server *server, payToAddress btcuti
 		Data:    make([]byte, 20),
 	}
 	rand.Read(dataTx.Data)
-	nonceData := bytes.NewBuffer(make([]byte, dataTx.SerializeSize()))
+	nonceData := bytes.NewBuffer(make([]byte, 0, dataTx.SerializeSize()))
 	dataTx.Serialize(nonceData)
 	nonceTx := &wire.MsgTx{
 		Type:     wire.TxTypeData,
@@ -334,6 +334,7 @@ func NewBlockTemplate(policy *mining.Policy, server *server, payToAddress btcuti
 		Data:     nonceData.Bytes(),
 	}
 	coinbaseTx := btcutil.NewTx(nonceTx)
+
 	// Create a slice to hold the transactions to be included in the
 	// generated block with reserved space.  Also create a transaction
 	// store to house all of the input transactions so multiple lookups
