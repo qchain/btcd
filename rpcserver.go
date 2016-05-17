@@ -123,7 +123,7 @@ var rpcHandlers map[string]commandHandler
 var rpcHandlersBeforeInit = map[string]commandHandler{
 	"addnode":               handleAddNode,
 	"createrawtransaction":  handleCreateRawTransaction,
-	"createtransaction": handleCreateTransaction,
+	"createtransaction":     handleCreateTransaction,
 	"getfilebyhextx":        handleGetFileByHexTx,
 	"getfilebytxid":         handleGetFileByTxId,
 	"debuglevel":            handleDebugLevel,
@@ -643,7 +643,7 @@ func handleCreateTransaction(s *rpcServer, cmd interface{}, closeChan <-chan str
 	return "Should not return here", err
 }
 
-// Wrapandsend takes a transaction, wraps it in the general wrapper and sends it. 
+// Wrapandsend takes a transaction, wraps it in the general wrapper and sends it.
 func WrapAndSend(tx wire.TxInterface, s *rpcServer, closeChan <-chan struct{}) (interface{}, error) {
 	// Wrapping txFile as msgtx
 	mtx := wire.WrapMsgTx(tx)
@@ -768,7 +768,7 @@ func handleGetFileByHexTx(s *rpcServer, cmd interface{}, closeChan <-chan struct
 			Message: "Not a filetransaction.",
 		}
 	}
-	// should not return here. 
+	// should not return here.
 	return nil, err
 }
 
@@ -810,7 +810,7 @@ func handleGetFileByTxId(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 		err = ioutil.WriteFile(txf.Filename, txf.Data, 0644)
 		return txf.Filename, nil
 
-	case wire.TxTypeSignFile:	
+	case wire.TxTypeSignFile:
 		vercmd := btcjson.NewVerifyDataCmd(c.Txid)
 		verified, err := handleVerifyData(s, vercmd, closeChan)
 		if err != nil {

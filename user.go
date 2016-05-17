@@ -1,7 +1,6 @@
 package main
 
 import (
-	
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
@@ -14,7 +13,6 @@ import (
 	"github.com/qchain/btcd/btcec"
 	"io"
 	"io/ioutil"
-
 )
 
 // TODO: Write documentation on User.
@@ -91,7 +89,6 @@ func (u *User) Deserialize(r io.Reader) error {
 
 	return nil
 }
-
 
 func (u *User) NewKey(pw string) ([]byte, error) {
 
@@ -185,25 +182,7 @@ func (u *User) Save() error {
 	}
 	return nil
 }
-/*
-func (u *User) InitNewUser(username string) error {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter new password : \n")
-	text, err := reader.ReadString('\n')
-	if err != nil {
-		return err
-	}
-	_, err = u.SetPassword(text)
-	_, err = u.newKey(text)
 
-	u = &User{
-		Version:  1,
-		Username: username,
-		Password: pwchk,
-		Key:      keyb,
-	}
-	return nil
-}*/
 func NewUser() *User {
 	return &User{
 		Version:  1,
