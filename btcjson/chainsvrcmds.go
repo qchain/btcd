@@ -84,30 +84,21 @@ func NewLogInCmd(username, password string) *LogInCmd {
 	}
 }
 
-type CreateSignedDataTxCmd struct {
-	Filename string
-	Username string
-	Password string
-}
-
-func NewCreateSignedDataTxCmd(filename, username, password string) *CreateSignedDataTxCmd {
-	return &CreateSignedDataTxCmd{
-		Filename: filename,
-		Username: username,
-		Password: password,
-	}
-}
-
-type CreateDataTransactionCmd struct {
+type CreateTransactionCmd struct {
 	FileName string
 	Type     *int
+	Username *string
+	Password *string
 }
 
-func NewCreateDataTransactionCmd(fileName string, txtype *int) *CreateDataTransactionCmd {
+func NewCreateTransactionCmd(fileName string, username, password *string, txtype *int) *CreateTransactionCmd {
 
-	return &CreateDataTransactionCmd{
+	return &CreateTransactionCmd{
 		FileName: fileName,
 		Type:     txtype,
+		Username: username,
+		Password: password,
+
 	}
 }
 
@@ -787,8 +778,7 @@ func init() {
 
 	MustRegisterCmd("addnode", (*AddNodeCmd)(nil), flags)
 	MustRegisterCmd("createrawtransaction", (*CreateRawTransactionCmd)(nil), flags)
-	MustRegisterCmd("createdatatransaction", (*CreateDataTransactionCmd)(nil), flags)
-	MustRegisterCmd("createsigneddatatx", (*CreateSignedDataTxCmd)(nil), flags)
+	MustRegisterCmd("createtransaction", (*CreateTransactionCmd)(nil), flags)
 	MustRegisterCmd("getfilebyhextx", (*GetFileByHextxCmd)(nil), flags)
 	MustRegisterCmd("getfilebytxid", (*GetFileByTxidCmd)(nil), flags)
 	MustRegisterCmd("decoderawtransaction", (*DecodeRawTransactionCmd)(nil), flags)

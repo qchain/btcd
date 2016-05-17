@@ -123,8 +123,7 @@ var rpcHandlers map[string]commandHandler
 var rpcHandlersBeforeInit = map[string]commandHandler{
 	"addnode":               handleAddNode,
 	"createrawtransaction":  handleCreateRawTransaction,
-	"createdatatransaction": handleCreateDataTransaction,
-	"createsigneddatatx":	 handleCreateSignedDataTx,
+	"createtransaction": handleCreateTransaction,
 	"getfilebyhextx":        handleGetFileByHexTx,
 	"getfilebytxid":         handleGetFileByTxId,
 	"debuglevel":            handleDebugLevel,
@@ -153,7 +152,6 @@ var rpcHandlersBeforeInit = map[string]commandHandler{
 	"getrawtransaction":     handleGetRawTransaction,
 	"getwork":               handleGetWork,
 	"help":                  handleHelp,
-	"login":                 handleLogIn,
 	"node":                  handleNode,
 	"ping":                  handlePing,
 	"searchrawtransactions": handleSearchRawTransactions,
@@ -522,22 +520,20 @@ func handleCreateRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan 
 	return mtxHex, nil
 }
 
-// handleLogIn
-func handleLogIn(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.LogInCmd)
-	pass := c.Password
+// Login takes username and password and returns the private key serialized.
+func LogIn(username, pass string) ([]byte, error) {
+
 	fmt.Println("Logging in..")
-	_, err := os.Stat("users/" + c.Username)
+	_, err := os.Stat("users/" + username)
 	if err != nil && !os.IsNotExist(err) {
 		// A stat error not due to a non-existant file should be
 		// returned to the caller.
 		return nil, err
 	} else if err != nil && os.IsNotExist(err) {
 		// Create new user
-		fmt.Println("Creating user " + c.Username + ".")
+		fmt.Println("Creating user " + username + ".")
 		user := NewUser()
-		user.Username = c.Username
-		user.Password, err = user.SetPassword(pass)
+		user.Username = username
 		user.Key, err = user.NewKey(pass)
 		if err != nil {
 			return nil, err
@@ -550,7 +546,7 @@ func handleLogIn(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (inte
 		return pkBytes, nil
 	} else if err == nil {
 		// Keystore file exists.
-		userfile, err := ioutil.ReadFile("users/" + c.Username)
+		userfile, err := ioutil.ReadFile("users/" + username)
 		if err != nil {
 			return nil, err
 		}
@@ -567,56 +563,17 @@ func handleLogIn(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (inte
 	return nil, errors.New("err is neither nil nor not nil. World is ending")
 }
 
-func handleCreateSignedDataTx(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.CreateSignedDataTxCmd)
-
-	// Read bytes from file
-	byteFile, err := ioutil.ReadFile(c.Filename)
-	if err != nil {
-		return nil, err
-	}
-
-	txf := wire.NewTxSignFile()
-	txf.Filename = c.Filename
-	txf.Data = byteFile
-	//TODO: add fetch Privkey
-	// Signing from priv key.
-	usercmd := btcjson.NewLogInCmd(c.Username, c.Password)
-	pkBytes, err := handleLogIn(s, usercmd, closeChan)
-	privKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), pkBytes.([]byte))
-	if err != nil {
-		return nil, err
-	}
-	//pubKey := privKey.PubKey()
-
-	// Sign a message using the private key.
-	messageHash := wire.DoubleSha256([]byte(txf.Data))
-	signature, err := privKey.Sign(messageHash)
-	if err != nil {
-		return nil, err
-	}
-
-	// Appending signature to msg
-	txf.SetSig(signature)
-	txid, err := WrapAndSend(txf, s, closeChan)
-	if err != nil {
-		return nil, err
-	}
-	return txid, nil
-
-}
-
-// handleCreateDataTransaction handles CreateDataTransactions.
-// CreateDataTransaction takes a filepath and inserts it in a tx.
-func handleCreateDataTransaction(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
-	c := cmd.(*btcjson.CreateDataTransactionCmd)
+// handleCreateTransaction handles CreateTransactions.
+// CreateTransaction takes a filepath and inserts it in a tx.
+func handleCreateTransaction(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) (interface{}, error) {
+	c := cmd.(*btcjson.CreateTransactionCmd)
 
 	// Read bytes from file
 	byteFile, err := ioutil.ReadFile(c.FileName)
 	if err != nil {
 		return nil, err
 	}
-
+	// Check the tx type and handle accordingly.
 	switch *c.Type {
 
 	case wire.TxTypeFile:
@@ -632,12 +589,24 @@ func handleCreateDataTransaction(s *rpcServer, cmd interface{}, closeChan <-chan
 
 	case wire.TxTypeSignFile:
 
+		if c.Username == nil || c.Password == nil {
+			return nil, &btcjson.RPCError{
+				Code:    btcjson.ErrRPCInvalidParameter,
+				Message: "No username or password.",
+			}
+		}
+
 		txf := wire.NewTxSignFile()
 		txf.Filename = c.FileName
 		txf.Data = byteFile
 		//TODO: add fetch Privkey
 		// Signing from priv key.
-		privKey, err := btcec.NewPrivateKey(btcec.S256())
+
+		pkBytes, err := LogIn(*c.Username, *c.Password)
+		if err != nil {
+			return nil, err
+		}
+		privKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), pkBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -674,6 +643,7 @@ func handleCreateDataTransaction(s *rpcServer, cmd interface{}, closeChan <-chan
 	return "Should not return here", err
 }
 
+// Wrapandsend takes a transaction, wraps it in the general wrapper and sends it. 
 func WrapAndSend(tx wire.TxInterface, s *rpcServer, closeChan <-chan struct{}) (interface{}, error) {
 	// Wrapping txFile as msgtx
 	mtx := wire.WrapMsgTx(tx)
@@ -690,9 +660,6 @@ func WrapAndSend(tx wire.TxInterface, s *rpcServer, closeChan <-chan struct{}) (
 	if err != nil {
 		return nil, err
 	}
-/*	gfbtx := btcjson.NewGetFileByTxidCmd(txid.(string))
-	filename, err := handleGetFileByTxId(s, gfbtx, closeChan)
-	return filename, nil*/
 	return txid, nil
 }
 
@@ -724,7 +691,7 @@ func handleVerifyData(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) 
 		mtx = tx.MsgTx()
 	}
 
-	if mtx.Type != wire.TxTypeFile {
+	if mtx.Type != wire.TxTypeSignFile {
 		return nil, &btcjson.RPCError{
 			Code:    btcjson.ErrRPCType,
 			Message: "Not a filetransaction.",
@@ -734,11 +701,6 @@ func handleVerifyData(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) 
 	buf := bytes.NewBuffer(mtx.Data)
 	txf := wire.NewTxSignFile()
 	txf.Deserialize(buf)
-
-	err = ioutil.WriteFile(txf.Filename, txf.Data, 0644)
-	if err != nil {
-		return nil, err
-	}
 	//Parsing mtx.Sig to btcec.Signature format
 	sig, err := btcec.ParseDERSignature(txf.Signature, btcec.S256())
 	if err != nil {
@@ -748,7 +710,6 @@ func handleVerifyData(s *rpcServer, cmd interface{}, closeChan <-chan struct{}) 
 	// Generates pubkey from signature
 	messageHash := wire.DoubleSha256([]byte(txf.Data))
 	pubKey2, err := btcec.RecoverKeyFromSignature(btcec.S256(), sig, messageHash, 1, false)
-	fmt.Printf("Pubkey from sig %x \n", pubKey2)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -785,23 +746,30 @@ func handleGetFileByHexTx(s *rpcServer, cmd interface{}, closeChan <-chan struct
 		}
 	}
 
-	if mtx.Type != wire.TxTypeFile {
+	buf := bytes.NewBuffer(mtx.Data)
+	// checks tx type and deserialize accordingly.
+	switch mtx.Type {
+
+	case wire.TxTypeFile:
+		txf := wire.NewTxFile()
+		txf.Deserialize(buf)
+		err = ioutil.WriteFile(txf.Filename, txf.Data, 0644)
+		return txf.Filename, nil
+
+	case wire.TxTypeSignFile:
+		txf := wire.NewTxSignFile()
+		txf.Deserialize(buf)
+		err = ioutil.WriteFile(txf.Filename, txf.Data, 0644)
+		return txf.Filename, nil
+
+	default:
 		return nil, &btcjson.RPCError{
 			Code:    btcjson.ErrRPCType,
 			Message: "Not a filetransaction.",
 		}
 	}
-
-	buf := bytes.NewBuffer(mtx.Data)
-	txf := wire.NewTxFile()
-	txf.Deserialize(buf)
-
-	err = ioutil.WriteFile(txf.Filename, txf.Data, 0644)
-	if err != nil {
-		return nil, err
-	}
-
-	return txf.Filename, nil
+	// should not return here. 
+	return nil, err
 }
 
 // handleGetFileByTxId handles GetFileByTxid
@@ -834,6 +802,7 @@ func handleGetFileByTxId(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 	}
 
 	buf := bytes.NewBuffer(mtx.Data)
+	// checks tx type and deserialize accordingly.
 	switch mtx.Type {
 
 	case wire.TxTypeFile:
@@ -842,7 +811,18 @@ func handleGetFileByTxId(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 		err = ioutil.WriteFile(txf.Filename, txf.Data, 0644)
 		return txf.Filename, nil
 
-	case wire.TxTypeSignFile:
+	case wire.TxTypeSignFile:	
+		vercmd := btcjson.NewVerifyDataCmd(c.Txid)
+		verified, err := handleVerifyData(s, vercmd, closeChan)
+		if err != nil {
+			return nil, err
+		}
+		if !verified.(bool) || err != nil {
+			return nil, &btcjson.RPCError{
+				Code:    btcjson.ErrRPCVerify,
+				Message: "Verfication error. Can not verify signature.",
+			}
+		}
 		txf := wire.NewTxSignFile()
 		txf.Deserialize(buf)
 		err = ioutil.WriteFile(txf.Filename, txf.Data, 0644)
@@ -854,10 +834,8 @@ func handleGetFileByTxId(s *rpcServer, cmd interface{}, closeChan <-chan struct{
 			Message: "Not a filetransaction.",
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	return "Should not return here", err
+	//should not return here.
+	return nil, err
 }
 
 // handleDebugLevel handles debuglevel commands.
